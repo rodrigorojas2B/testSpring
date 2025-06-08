@@ -1,17 +1,19 @@
 --- ANÁLISIS DE CLASES EXISTENTES ---
 
-| Clase Java | Clasificación | Motivo |
-|------------|----------------|--------|
-| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` que es necesario para la validación |
-| EmployeeRepository | REUTILIZABLE-AS-IS | Proporciona la funcionalidad de eliminación que se modificará |
-| EmployeeService | REUTILIZABLE-AS-IS | La interfaz del servicio no necesita modificaciones |
-| EmployeeServiceImpl | MODIFICABLE | Necesita validación adicional antes de eliminar un empleado |
-| EmployeeController | REUTILIZABLE-AS-IS | No necesita modificaciones ya que la lógica de eliminación está en el servicio |
+| Clase Java | Package | Clasificación | Motivo |
+|------------|---------|----------------|--------|
+| Employee | test.core.api.model | REUTILIZABLE-AS-IS | Contiene atributo `gender` |
+| EmployeeRepository | test.core.api.repository | REUTILIZABLE-AS-IS | Se utiliza para realizar operaciones CRUD en la entidad Employee |
+| EmployeeService | test.core.api.service | REUTILIZABLE-AS-IS | Interfaz de servicio que define los métodos para la entidad Employee |
+| EmployeeServiceImpl | test.core.api.service.impl | MODIFICABLE | Debe validar antes de borrar |
+| EmployeeController | test.core.api.controller | REUTILIZABLE-AS-IS | Controlador que maneja las solicitudes HTTP para la entidad Employee |
+| EmployeeCoreApiApplication | test.core.api | REUTILIZABLE-AS-IS | Clase principal de la aplicación |
+| CannotDeleteEmployeeException | test.core.api.exception | NUEVA | Requerida para lanzar excepción cuando se intenta eliminar un empleado femenino |
 
 --- PLAN DE MODIFICACIÓN ---
 
-1. Clase `EmployeeServiceImpl`: Modificar el método `deleteEmployeeById(Long id)` para incluir una validación de género antes de eliminar un empleado. Si el género del empleado es "Femenino", se lanzará una excepción. Si el género es "Masculino" u otro valor, se permitirá la eliminación.
+1. Crear una nueva excepción `CannotDeleteEmployeeException` en el paquete `test.core.api.exception`. Esta excepción se lanzará cuando se intente eliminar un empleado femenino.
 
-2. Crear una nueva excepción personalizada `CannotDeleteEmployeeException` para lanzar cuando se intenta eliminar un empleado femenino. Esta clase se creará en el paquete `test.core.api.exception`.
+2. Modificar la clase `EmployeeServiceImpl` en el paquete `test.core.api.service.impl`. En el método `deleteEmployeeById`, antes de eliminar el empleado, se debe verificar si el empleado es femenino. Si es así, se debe lanzar la excepción `CannotDeleteEmployeeException`.
 
-3. Crear pruebas unitarias para el método modificado en la clase `EmployeeServiceImplTest`. Estas pruebas verificarán que se lanza la excepción correcta cuando se intenta eliminar un empleado femenino y que los empleados masculinos u otros pueden ser eliminados.
+3. Crear pruebas unitarias para validar la nueva lógica en `EmployeeServiceImpl`. Las pruebas deben asegurarse de que la excepción `CannotDeleteEmployeeException` se lance cuando se intente eliminar un empleado femenino y que los empleados masculinos puedan ser eliminados normalmente.

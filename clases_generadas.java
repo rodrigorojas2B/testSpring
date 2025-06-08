@@ -1,4 +1,10 @@
---- CLASE MODIFICADA ---
+package test.core.api.exception;
+
+public class CannotDeleteEmployeeException extends RuntimeException {
+    public CannotDeleteEmployeeException(String message) {
+        super(message);
+    }
+}
 
 package test.core.api.service.impl;
 
@@ -9,6 +15,8 @@ import test.core.api.model.Employee;
 import test.core.api.repository.EmployeeRepository;
 import test.core.api.service.EmployeeService;
 
+import java.util.List;
+
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
 
@@ -16,38 +24,46 @@ public class EmployeeServiceImpl implements EmployeeService {
     private EmployeeRepository employeeRepository;
 
     @Override
-    public void deleteEmployeeById(Long id) {
-        // Start of AI modification
-        Employee employee = employeeRepository.findById(id).orElse(null);
-        if (employee != null && "Femenino".equals(employee.getGender())) {
-            throw new CannotDeleteEmployeeException("Cannot delete female employee with id: " + id);
+    public List<Employee> getAllEmployees() {
+        return employeeRepository.findAll();
+    }
+
+    @Override
+    public Employee getEmployeeById(Long employeeId) {
+        return employeeRepository.findById(employeeId).orElse(null);
+    }
+
+    @Override
+    public Employee addEmployee(Employee employee) {
+        return employeeRepository.save(employee);
+    }
+
+    @Override
+    public Employee updateEmployee(Employee employee) {
+        return employeeRepository.save(employee);
+    }
+
+    @Override
+    public void deleteEmployeeById(Long employeeId) {
+        Employee employee = getEmployeeById(employeeId);
+        if (employee != null) {
+            // Inicio de la modificación realizada por la IA
+            if ("Femenino".equalsIgnoreCase(employee.getGender())) {
+                throw new CannotDeleteEmployeeException("No se puede eliminar un empleado de género femenino");
+            }
+            // Fin de la modificación realizada por la IA
+            employeeRepository.deleteById(employeeId);
         }
-        // End of AI modification
-        employeeRepository.deleteById(id);
-    }
-
-    // Other existing methods...
-}
-
---- NUEVA CLASE ---
-
-package test.core.api.exception;
-
-public class CannotDeleteEmployeeException extends RuntimeException {
-    public CannotDeleteEmployeeException(String message) {
-        super(message);
     }
 }
-
---- TEST UNITARIO NUEVO ---
 
 package test.core.api.service.impl;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import test.core.api.exception.CannotDeleteEmployeeException;
 import test.core.api.model.Employee;
 import test.core.api.repository.EmployeeRepository;
@@ -55,32 +71,42 @@ import test.core.api.repository.EmployeeRepository;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 public class EmployeeServiceImplTest {
-
-    @Mock
-    private EmployeeRepository employeeRepository;
 
     @InjectMocks
     private EmployeeServiceImpl employeeService;
 
-    @Test
-    public void deleteEmployeeById_FemaleEmployee_ThrowsException() {
-        Employee femaleEmployee = new Employee();
-        femaleEmployee.setGender("Femenino");
-        when(employeeRepository.findById(1L)).thenReturn(Optional.of(femaleEmployee));
+    @Mock
+    private EmployeeRepository employeeRepository;
 
-        assertThrows(CannotDeleteEmployeeException.class, () -> employeeService.deleteEmployeeById(1L));
+    @BeforeEach
+    public void setUp() {
+        MockitoAnnotations.initMocks(this);
     }
 
     @Test
-    public void deleteEmployeeById_MaleEmployee_AllowsDeletion() {
-        Employee maleEmployee = new Employee();
-        maleEmployee.setGender("Masculino");
-        when(employeeRepository.findById(1L)).thenReturn(Optional.of(maleEmployee));
+    public void testDeleteEmployeeById_FemaleEmployee() {
+        Employee employee = new Employee();
+        employee.setGender("Femenino");
+        when(employeeRepository.findById(anyLong())).thenReturn(Optional.of(employee));
 
-        employeeService.deleteEmployeeById(1L);  // No exception should be thrown
+        assertThrows(CannotDeleteEmployeeException.class, () -> {
+            employeeService.deleteEmployeeById(1L);
+        });
+
+        verify(employeeRepository, never()).deleteById(anyLong());
+    }
+
+    @Test
+    public void testDeleteEmployeeById_MaleEmployee() {
+        Employee employee = new Employee();
+        employee.setGender("Masculino");
+        when(employeeRepository.findById(anyLong())).thenReturn(Optional.of(employee));
+
+        employeeService.deleteEmployeeById(1L);
+
+        verify(employeeRepository, times(1)).deleteById(anyLong());
     }
 }

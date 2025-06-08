@@ -7,6 +7,8 @@ import test.core.api.model.Employee;
 import test.core.api.repository.EmployeeRepository;
 import test.core.api.service.EmployeeService;
 
+import java.util.List;
+
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
 
@@ -14,18 +16,36 @@ public class EmployeeServiceImpl implements EmployeeService {
     private EmployeeRepository employeeRepository;
 
     @Override
-    public void deleteEmployeeById(Long id) {
-        // Start of AI modification
-        Employee employee = employeeRepository.findById(id).orElse(null);
-        if (employee != null && "Femenino".equals(employee.getGender())) {
-            throw new CannotDeleteEmployeeException("Cannot delete female employee with id: " + id);
-        }
-        // End of AI modification
-        employeeRepository.deleteById(id);
+    public List<Employee> getAllEmployees() {
+        return employeeRepository.findAll();
     }
 
-    // Other existing methods...
-}
+    @Override
+    public Employee getEmployeeById(Long employeeId) {
+        return employeeRepository.findById(employeeId).orElse(null);
+    }
 
---- NUEVA CLASE ---
+    @Override
+    public Employee addEmployee(Employee employee) {
+        return employeeRepository.save(employee);
+    }
+
+    @Override
+    public Employee updateEmployee(Employee employee) {
+        return employeeRepository.save(employee);
+    }
+
+    @Override
+    public void deleteEmployeeById(Long employeeId) {
+        Employee employee = getEmployeeById(employeeId);
+        if (employee != null) {
+            // Inicio de la modificación realizada por la IA
+            if ("Femenino".equalsIgnoreCase(employee.getGender())) {
+                throw new CannotDeleteEmployeeException("No se puede eliminar un empleado de género femenino");
+            }
+            // Fin de la modificación realizada por la IA
+            employeeRepository.deleteById(employeeId);
+        }
+    }
+}
 
