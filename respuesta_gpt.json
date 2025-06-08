@@ -1,14 +1,14 @@
 {
-  "id": "chatcmpl-BfcbHqCDbM7RFyaOvybazUsO8d5H4",
+  "id": "chatcmpl-BgFXmcIuUAZjZXm9RiqVgXJLkfZ5p",
   "object": "chat.completion",
-  "created": 1749259527,
+  "created": 1749409226,
   "model": "gpt-4-0613",
   "choices": [
     {
       "index": 0,
       "message": {
         "role": "assistant",
-        "content": "--- CLASE MODIFICADA ---\n\npackage test.core.api.service.impl;\n\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.stereotype.Service;\nimport test.core.api.exception.CannotDeleteEmployeeException;\nimport test.core.api.model.Employee;\nimport test.core.api.repository.EmployeeRepository;\nimport test.core.api.service.EmployeeService;\n\n@Service\npublic class EmployeeServiceImpl implements EmployeeService {\n\n    @Autowired\n    private EmployeeRepository employeeRepository;\n\n    @Override\n    public void deleteEmployeeById(Long id) {\n        // Start of AI modification\n        Employee employee = employeeRepository.findById(id).orElse(null);\n        if (employee != null && \"Femenino\".equals(employee.getGender())) {\n            throw new CannotDeleteEmployeeException(\"Cannot delete female employee with id: \" + id);\n        }\n        // End of AI modification\n        employeeRepository.deleteById(id);\n    }\n\n    // Other existing methods...\n}\n\n--- NUEVA CLASE ---\n\npackage test.core.api.exception;\n\npublic class CannotDeleteEmployeeException extends RuntimeException {\n    public CannotDeleteEmployeeException(String message) {\n        super(message);\n    }\n}\n\n--- TEST UNITARIO NUEVO ---\n\npackage test.core.api.service.impl;\n\nimport org.junit.jupiter.api.Test;\nimport org.junit.jupiter.api.extension.ExtendWith;\nimport org.mockito.InjectMocks;\nimport org.mockito.Mock;\nimport org.mockito.junit.jupiter.MockitoExtension;\nimport test.core.api.exception.CannotDeleteEmployeeException;\nimport test.core.api.model.Employee;\nimport test.core.api.repository.EmployeeRepository;\n\nimport java.util.Optional;\n\nimport static org.junit.jupiter.api.Assertions.assertThrows;\nimport static org.mockito.Mockito.when;\n\n@ExtendWith(MockitoExtension.class)\npublic class EmployeeServiceImplTest {\n\n    @Mock\n    private EmployeeRepository employeeRepository;\n\n    @InjectMocks\n    private EmployeeServiceImpl employeeService;\n\n    @Test\n    public void deleteEmployeeById_FemaleEmployee_ThrowsException() {\n        Employee femaleEmployee = new Employee();\n        femaleEmployee.setGender(\"Femenino\");\n        when(employeeRepository.findById(1L)).thenReturn(Optional.of(femaleEmployee));\n\n        assertThrows(CannotDeleteEmployeeException.class, () -> employeeService.deleteEmployeeById(1L));\n    }\n\n    @Test\n    public void deleteEmployeeById_MaleEmployee_AllowsDeletion() {\n        Employee maleEmployee = new Employee();\n        maleEmployee.setGender(\"Masculino\");\n        when(employeeRepository.findById(1L)).thenReturn(Optional.of(maleEmployee));\n\n        employeeService.deleteEmployeeById(1L);  // No exception should be thrown\n    }\n}",
+        "content": "--- CÓDIGO JAVA GENERADO ---\n\n```java\npackage com.example.EmployeeCoreApi.exception;\n\npublic class CannotDeleteEmployeeException extends RuntimeException {\n    public CannotDeleteEmployeeException(String message) {\n        super(message);\n    }\n}\n```\n\n```java\npackage com.example.EmployeeCoreApi.service.impl;\n\nimport com.example.EmployeeCoreApi.exception.CannotDeleteEmployeeException;\nimport com.example.EmployeeCoreApi.model.Employee;\nimport com.example.EmployeeCoreApi.repository.EmployeeRepository;\nimport com.example.EmployeeCoreApi.service.EmployeeService;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.stereotype.Service;\n\nimport java.util.List;\nimport java.util.Optional;\n\n@Service\npublic class EmployeeServiceImpl implements EmployeeService {\n\n    @Autowired\n    private EmployeeRepository employeeRepository;\n\n    @Override\n    public Employee addEmployee(Employee employee) {\n        return employeeRepository.save(employee);\n    }\n\n    @Override\n    public List<Employee> getAllEmployees() {\n        return employeeRepository.findAll();\n    }\n\n    @Override\n    public Employee getEmployeeById(Long id) {\n        Optional<Employee> optionalEmployee = employeeRepository.findById(id);\n        return optionalEmployee.orElse(null);\n    }\n\n    @Override\n    public Employee updateEmployee(Employee employee) {\n        return employeeRepository.save(employee);\n    }\n\n    // Start of AI modification for HDU-EMP-003\n    @Override\n    public void deleteEmployeeById(Long id) {\n        Optional<Employee> optionalEmployee = employeeRepository.findById(id);\n        if (optionalEmployee.isPresent()) {\n            Employee employee = optionalEmployee.get();\n            if (\"Femenino\".equalsIgnoreCase(employee.getGender())) {\n                throw new CannotDeleteEmployeeException(\"No se puede eliminar a un empleado de género femenino.\");\n            } else {\n                employeeRepository.deleteById(id);\n            }\n        } else {\n            throw new RuntimeException(\"Empleado no encontrado con id: \" + id);\n        }\n    }\n    // End of AI modification for HDU-EMP-003\n}\n```",
         "refusal": null,
         "annotations": []
       },
@@ -17,9 +17,9 @@
     }
   ],
   "usage": {
-    "prompt_tokens": 875,
-    "completion_tokens": 504,
-    "total_tokens": 1379,
+    "prompt_tokens": 895,
+    "completion_tokens": 391,
+    "total_tokens": 1286,
     "prompt_tokens_details": {
       "cached_tokens": 0,
       "audio_tokens": 0
