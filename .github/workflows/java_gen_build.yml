@@ -156,6 +156,9 @@ jobs:
           - Cada clase debe comenzar con `package ...`.
           - Devuelve únicamente clases y tests JUnit 5 válidos.
           - No incluyas explicaciones ni comentarios adicionales.
+          - Si una clase existente implementa una interfaz, o hereda de otra clase, debes mantener esa declaración `implements o extends ...`.
+          - No elimines implementaciones de interfaces ya declaradas.
+          - La firma de las clases y métodos debe mantenerse sin cambio a menos que la nueva funcionalidad lo requiera
 
           EOF
 
