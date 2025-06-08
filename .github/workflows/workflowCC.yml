@@ -63,8 +63,16 @@ jobs:
 
           while read -r clase; do
             echo -e "\n\n// Archivo: $clase\n" >> entrada_gpt.txt
+
+            # Validación fuerte: si el archivo contiene '// Other methods...', aborta
+            if grep -q '// Other methods' "$clase"; then
+              echo "⛔ El archivo $clase contiene '// Other methods...'. Reemplázalo por el código real antes de continuar."
+              exit 1
+            fi
+
             cat "$clase" >> entrada_gpt.txt
           done < clases_existentes.txt
+
 
           cat <<'EOF' >> entrada_gpt.txt
 
@@ -164,7 +172,7 @@ jobs:
             "messages": [
               {
                 "role": "system",
-                "content": "Eres un generador de código Java experto en Spring Boot. Cada clase que modifiques debe incluir todos sus métodos existentes reales, no los resumas ni los reemplaces por comentarios. NO USES '// Other methods...' NI NINGÚN COMENTARIO QUE OMITE MÉTODOS. Si modificas una clase, incluye su código completo, con todos los métodos existentes intactos más los nuevos o modificados. No inventes clases nuevas salvo que estén marcadas como NUEVA en el análisis. No incluyas texto fuera del código. Cada clase debe comenzar con 'package ...'."
+                "content": "Eres un generador de código Java experto en Spring Boot. Cuando modifiques una clase, debes incluir todo el contenido original de esa clase tal como aparece en el repositorio, incluyendo todos los métodos existentes, incluso si no se modifican. No está permitido usar comentarios como '// Other methods...' ni omitir partes del código original. No inventes clases nuevas salvo que estén marcadas como NUEVA en el análisis. No incluyas texto fuera del código. Cada clase debe comenzar con 'package ...'."
               },
               {
                 "role": "user",
