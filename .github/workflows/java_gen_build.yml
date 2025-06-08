@@ -332,9 +332,9 @@ jobs:
             Eres un experto compilador de Java. Analiza los errores mostrados y entrega solo un plan de corrección breve y estructurado, indicando los archivos involucrados, los problemas y qué se debe corregir. No devuelvas código, solo la lista clara de correcciones.
             EOF
             
-                  DIAG_PROMPT=$(jq -Rs . < prompt_diag.txt)
+            DIAG_PROMPT=$(jq -Rs . < prompt_diag.txt)
             
-                  cat <<EOF > payload_diagnostico_errores.json
+            cat <<EOF > payload_diagnostico_errores.json
             {
               "model": "gpt-4",
               "messages": [
@@ -366,9 +366,9 @@ jobs:
             Corrige el código entregado según el plan anterior. Devuelve solo clases Java válidas. Cada clase debe comenzar con 'package ...'. No incluyas explicaciones ni encabezados. No utilices backticks (\`).
             EOF
             
-                  CODIGO_PROMPT=$(jq -Rs . < prompt_cod.txt)
+            CODIGO_PROMPT=$(jq -Rs . < prompt_cod.txt)
             
-                  cat <<EOF > payload_codigo_corregido.json
+            cat <<EOF > payload_codigo_corregido.json
             {
               "model": "gpt-4",
               "messages": [
