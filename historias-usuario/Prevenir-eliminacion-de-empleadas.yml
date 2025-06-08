@@ -3,7 +3,7 @@ titulo: Prevenir eliminación de empleadas
 actor: Administrador del sistema
 descripcion: >
   Como administrador del sistema,
-  quiero que no se permita eliminar empleados de género femenino,
+  quiero que no se permita  eliminar empleados de género femenino,
   para cumplir con la normativa interna de no eliminar registros históricos sensibles.
 
 criterios_aceptacion:

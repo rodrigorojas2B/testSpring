@@ -186,7 +186,9 @@ jobs:
           echo "📨 Respuesta de OpenAI:"
           cat respuesta_gpt.json
 
-          jq -r '.choices[0].message.content // "❌ GPT no devolvió contenido válido."' respuesta_gpt.json > clases_generadas.java
+          jq -r '.choices[0].message.content // "❌ GPT no devolvió contenido válido."' respuesta_gpt.json \
+          | sed '/^```/d' \
+          > clases_generadas.java
 
       - name: Separar clases generadas
         run: |
