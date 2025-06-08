@@ -324,14 +324,15 @@ jobs:
             mvn compile > error_build.log 2>&1 || true
       
             echo "🧠 Análisis de error con GPT (Diagnóstico)..."
-            DIAG_PROMPT=$(jq -Rs . <<EOF
-            --- LOG DE COMPILACIÓN FALLIDA ---
-            $(cat error_build.log)
-            
+            echo "--- LOG DE COMPILACIÓN FALLIDA ---" > prompt_diag.txt
+            cat error_build.log >> prompt_diag.txt
+            cat <<EOF >> prompt_diag.txt
+      
             --- INSTRUCCIONES ---
             Eres un experto compilador de Java. Analiza los errores mostrados y entrega solo un plan de corrección breve y estructurado, indicando los archivos involucrados, los problemas y qué se debe corregir. No devuelvas código, solo la lista clara de correcciones.
             EOF
-            )
+            
+                  DIAG_PROMPT=$(jq -Rs . < prompt_diag.txt)
             
                   cat <<EOF > payload_diagnostico_errores.json
             {
@@ -355,22 +356,17 @@ jobs:
             echo "$PLAN_CORRECCION"
       
             echo "🧠 Generando código corregido con GPT (Aplicación del plan)..."
-            CODIGO_PROMPT=$(jq -Rs . <<EOF
-            --- PLAN DE CORRECCIÓN ---
-            $PLAN_CORRECCION
-            
-            --- CÓDIGO GENERADO QUE FALLÓ ---
-            $(cat clases_generadas.java)
-            
-            --- CLASES EXISTENTES DEL PROYECTO ---
-            $(find src/main/java -name "*.java" -exec echo -e "\n// Archivo: {}\n" \; -exec cat {} \;)
-            
+            echo "--- PLAN DE CORRECCIÓN ---" > prompt_cod.txt
+            echo "$PLAN_CORRECCION" >> prompt_cod.txt
+            echo -e "\n--- CÓDIGO ACTUAL ---" >> prompt_cod.txt
+            cat clases_generadas.java >> prompt_cod.txt
+            cat <<EOF >> prompt_cod.txt
+      
             --- INSTRUCCIONES ---
-            Corrige el código entregado según el plan anterior y considerando las clases ya existentes.
-            Devuelve solo clases Java válidas. Cada clase debe comenzar con 'package ...'.
-            No incluyas explicaciones ni encabezados. No utilices backticks (\`).
+            Corrige el código entregado según el plan anterior. Devuelve solo clases Java válidas. Cada clase debe comenzar con 'package ...'. No incluyas explicaciones ni encabezados. No utilices backticks (\`).
             EOF
-            )
+            
+                  CODIGO_PROMPT=$(jq -Rs . < prompt_cod.txt)
             
                   cat <<EOF > payload_codigo_corregido.json
             {
@@ -421,8 +417,7 @@ jobs:
             echo "❌ Se alcanzó el máximo de intentos de corrección sin éxito"
             exit 1
           fi
-        
-
+      
 
       - name: Commit y push de la nueva funcionalidad (si todo compila)
         if: success()
