@@ -5,7 +5,7 @@ actor: Administrador del sistema
 descripcion: >
   Como administrador del sistema,
   quiero que no se permita eliminar empleados de género femenino,
-  para cumplir con la normativa interna de no eliminar registros históricos sensibles.
+  para cumplir con la normativa  interna de no eliminar registros históricos sensibles.
 
 criterios_aceptacion:
   - Si se intenta eliminar un empleado con género "Femenino", se debe lanzar una excepción o retornar un error controlado.
@@ -21,19 +21,20 @@ criterios_aceptacion:
 
 | Clase Java | Clasificación | Motivo |
 |------------|----------------|--------|
-| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` que es necesario para la validación |
-| EmployeeRepository | REUTILIZABLE-AS-IS | Proporciona la funcionalidad de eliminación que se modificará |
-| EmployeeService | REUTILIZABLE-AS-IS | La interfaz del servicio no necesita modificaciones |
-| EmployeeServiceImpl | MODIFICABLE | Necesita validación adicional antes de eliminar un empleado |
-| EmployeeController | REUTILIZABLE-AS-IS | No necesita modificaciones ya que la lógica de eliminación está en el servicio |
+| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` que es necesario para la nueva validación. |
+| EmployeeRepository | REUTILIZABLE-AS-IS | Se utiliza para realizar operaciones CRUD en la base de datos. |
+| EmployeeService | REUTILIZABLE-AS-IS | Interfaz que define los métodos del servicio de empleados. |
+| EmployeeServiceImpl | MODIFICABLE | Implementación del servicio de empleados donde se debe agregar la nueva validación antes de eliminar. |
+| EmployeeController | REUTILIZABLE-AS-IS | Controlador que maneja las solicitudes HTTP. No necesita cambios ya que la nueva validación se realiza en el servicio. |
+| EmployeeCoreApiApplication | REUTILIZABLE-AS-IS | Clase principal de la aplicación. No necesita cambios. |
 
 --- PLAN DE MODIFICACIÓN ---
 
-1. Clase `EmployeeServiceImpl`: Modificar el método `deleteEmployeeById(Long id)` para incluir una validación de género antes de eliminar un empleado. Si el género del empleado es "Femenino", se lanzará una excepción. Si el género es "Masculino" u otro valor, se permitirá la eliminación.
+1. Clase `EmployeeServiceImpl`: Modificar el método `deleteEmployeeById` para agregar una validación antes de eliminar un empleado. Si el empleado es de género femenino, lanzar una excepción.
 
-2. Crear una nueva excepción personalizada `CannotDeleteEmployeeException` para lanzar cuando se intenta eliminar un empleado femenino. Esta clase se creará en el paquete `test.core.api.exception`.
+2. Crear una nueva clase `CannotDeleteEmployeeException` que extienda de `RuntimeException`. Esta excepción se lanzará cuando se intente eliminar un empleado de género femenino.
 
-3. Crear pruebas unitarias para el método modificado en la clase `EmployeeServiceImplTest`. Estas pruebas verificarán que se lanza la excepción correcta cuando se intenta eliminar un empleado femenino y que los empleados masculinos u otros pueden ser eliminados.
+3. Crear una prueba unitaria para el método modificado `deleteEmployeeById` en la clase `EmployeeServiceImpl`. Esta prueba debe verificar que se lanza la excepción `CannotDeleteEmployeeException` cuando se intenta eliminar un empleado de género femenino.
 
 --- INSTRUCCIONES DE GENERACIÓN DE CÓDIGO ---
 - Modifica únicamente las clases marcadas como MODIFICABLE.

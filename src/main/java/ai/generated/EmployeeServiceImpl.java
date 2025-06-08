@@ -1,11 +1,13 @@
-package test.core.api.service.impl;
+package com.example.EmployeeCoreAPI.service;
 
+import com.example.EmployeeCoreAPI.exception.CannotDeleteEmployeeException;
+import com.example.EmployeeCoreAPI.model.Employee;
+import com.example.EmployeeCoreAPI.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import test.core.api.exception.CannotDeleteEmployeeException;
-import test.core.api.model.Employee;
-import test.core.api.repository.EmployeeRepository;
-import test.core.api.service.EmployeeService;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -14,18 +16,35 @@ public class EmployeeServiceImpl implements EmployeeService {
     private EmployeeRepository employeeRepository;
 
     @Override
-    public void deleteEmployeeById(Long id) {
-        // Start of AI modification
-        Employee employee = employeeRepository.findById(id).orElse(null);
-        if (employee != null && "Femenino".equals(employee.getGender())) {
-            throw new CannotDeleteEmployeeException("Cannot delete female employee with id: " + id);
-        }
-        // End of AI modification
-        employeeRepository.deleteById(id);
+    public List<Employee> getAllEmployees() {
+        return employeeRepository.findAll();
     }
 
-    // Other existing methods...
+    @Override
+    public void createEmployee(Employee employee) {
+        employeeRepository.save(employee);
+    }
+
+    @Override
+    public Optional<Employee> getEmployeeById(Long id) {
+        return employeeRepository.findById(id);
+    }
+
+    // Start of AI modification
+    @Override
+    public void deleteEmployeeById(Long id) {
+        Optional<Employee> employee = employeeRepository.findById(id);
+        if (employee.isPresent() && "Femenino".equalsIgnoreCase(employee.get().getGender())) {
+            throw new CannotDeleteEmployeeException("Cannot delete employee with gender 'Femenino'");
+        }
+        employeeRepository.deleteById(id);
+    }
+    // End of AI modification
+
+    @Override
+    public Employee updateEmployee(Employee employee) {
+        return employeeRepository.save(employee);
+    }
 }
 
---- NUEVA CLASE ---
 
