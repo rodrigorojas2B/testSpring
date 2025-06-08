@@ -1,43 +1,53 @@
-package test.core.api.service.impl;
+package com.example.EmployeeCoreApi.service.impl;
 
+import com.example.EmployeeCoreApi.exception.CannotDeleteEmployeeException;
+import com.example.EmployeeCoreApi.model.Employee;
+import com.example.EmployeeCoreApi.repository.EmployeeRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import test.core.api.exception.CannotDeleteEmployeeException;
-import test.core.api.model.Employee;
-import test.core.api.repository.EmployeeRepository;
+import org.mockito.MockitoAnnotations;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 public class EmployeeServiceImplTest {
-
-    @Mock
-    private EmployeeRepository employeeRepository;
 
     @InjectMocks
     private EmployeeServiceImpl employeeService;
 
-    @Test
-    public void deleteEmployeeById_FemaleEmployee_ThrowsException() {
-        Employee femaleEmployee = new Employee();
-        femaleEmployee.setGender("Femenino");
-        when(employeeRepository.findById(1L)).thenReturn(Optional.of(femaleEmployee));
+    @Mock
+    private EmployeeRepository employeeRepository;
 
-        assertThrows(CannotDeleteEmployeeException.class, () -> employeeService.deleteEmployeeById(1L));
+    @BeforeEach
+    public void setup() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void deleteEmployeeById_MaleEmployee_AllowsDeletion() {
-        Employee maleEmployee = new Employee();
-        maleEmployee.setGender("Masculino");
-        when(employeeRepository.findById(1L)).thenReturn(Optional.of(maleEmployee));
+    public void testDeleteEmployeeById_WithFemaleEmployee_ThrowsException() {
+        Employee employee = new Employee();
+        employee.setGender("Femenino");
+        when(employeeRepository.findById(anyLong())).thenReturn(Optional.of(employee));
 
-        employeeService.deleteEmployeeById(1L);  // No exception should be thrown
+        assertThrows(CannotDeleteEmployeeException.class, () -> {
+            employeeService.deleteEmployeeById(1L);
+        });
+
+        verify(employeeRepository, never()).deleteById(anyLong());
+    }
+
+    @Test
+    public void testDeleteEmployeeById_WithNonFemaleEmployee_DeletesEmployee() {
+        Employee employee = new Employee();
+        employee.setGender("Masculino");
+        when(employeeRepository.findById(anyLong())).thenReturn(Optional.of(employee));
+
+        employeeService.deleteEmployeeById(1L);
+
+        verify(employeeRepository).deleteById(anyLong());
     }
 }
