@@ -213,6 +213,9 @@ jobs:
           sed -i '/^--- CLASE MODIFICADA ---/d' clases_generadas.java
           sed -i '${/^$/d;}' clases_generadas.java
       
+          # === ELIMINAR LÍNEAS ANTES DEL PRIMER package ===
+          sed -i '1,/^package /{/^package /!d}' clases_generadas.java
+      
           # === SEPARACIÓN DE CLASES ===
           echo "📂 Separando clases en archivos individuales..."
           mkdir -p src/main/java/ai/generated
@@ -236,22 +239,17 @@ jobs:
       
             class_name=$(grep -oP 'public\s+(class|interface|enum)\s+\K\w+' "$file" | head -n 1)
       
-            if [ -z "$class_name" ]; then
-              echo "⚠️ No se pudo determinar el nombre de la clase en $file. Eliminando."
-              rm "$file"
-              continue
-            fi
-      
             if grep -q '@Test' "$file"; then
               dest="src/test/java/ai/generated"
             else
               dest="src/main/java/ai/generated"
             fi
       
-            mv "$file" "$dest/${class_name}.java"
+            mv "$file" "$dest/${class_name:-ClaseGenerada_$i}.java"
             i=$((i+1))
           done
-        
+      
+      
 
       - name: Ejecutar pruebas unitarias (incluye regresión)
         run: |
