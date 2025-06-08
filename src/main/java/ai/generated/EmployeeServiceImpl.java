@@ -1,11 +1,10 @@
-package test.core.api.service.impl;
+package com.example.demo.service.impl;
 
+import com.example.demo.exception.CannotDeleteEmployeeException;
+import com.example.demo.model.Employee;
+import com.example.demo.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import test.core.api.exception.CannotDeleteEmployeeException;
-import test.core.api.model.Employee;
-import test.core.api.repository.EmployeeRepository;
-import test.core.api.service.EmployeeService;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -13,19 +12,22 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Autowired
     private EmployeeRepository employeeRepository;
 
+    // Other methods...
+
     @Override
-    public void deleteEmployeeById(Long id) {
+    public void deleteEmployeeById(Long id) throws CannotDeleteEmployeeException {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid employee Id:" + id));
+
         // Start of AI modification
-        Employee employee = employeeRepository.findById(id).orElse(null);
-        if (employee != null && "Femenino".equals(employee.getGender())) {
-            throw new CannotDeleteEmployeeException("Cannot delete female employee with id: " + id);
+        if ("Femenino".equalsIgnoreCase(employee.getGender())) {
+            throw new CannotDeleteEmployeeException("Cannot delete employee with gender 'Femenino'");
         }
         // End of AI modification
+
         employeeRepository.deleteById(id);
     }
-
-    // Other existing methods...
 }
 
---- NUEVA CLASE ---
+---
 
