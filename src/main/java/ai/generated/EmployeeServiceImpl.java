@@ -1,11 +1,14 @@
-package test.core.api.service.impl;
+package com.example.employeecoreapi.service.impl;
 
+import com.example.employeecoreapi.exception.CannotDeleteEmployeeException;
+import com.example.employeecoreapi.model.Employee;
+import com.example.employeecoreapi.repository.EmployeeRepository;
+import com.example.employeecoreapi.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import test.core.api.exception.CannotDeleteEmployeeException;
-import test.core.api.model.Employee;
-import test.core.api.repository.EmployeeRepository;
-import test.core.api.service.EmployeeService;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -14,18 +17,38 @@ public class EmployeeServiceImpl implements EmployeeService {
     private EmployeeRepository employeeRepository;
 
     @Override
-    public void deleteEmployeeById(Long id) {
-        // Start of AI modification
-        Employee employee = employeeRepository.findById(id).orElse(null);
-        if (employee != null && "Femenino".equals(employee.getGender())) {
-            throw new CannotDeleteEmployeeException("Cannot delete female employee with id: " + id);
-        }
-        // End of AI modification
-        employeeRepository.deleteById(id);
+    public List<Employee> getAllEmployees() {
+        return employeeRepository.findAll();
     }
 
-    // Other existing methods...
-}
+    @Override
+    public Employee getEmployeeById(Long id) {
+        Optional<Employee> employee = employeeRepository.findById(id);
+        return employee.orElse(null);
+    }
 
---- NUEVA CLASE ---
+    @Override
+    public Employee addEmployee(Employee employee) {
+        return employeeRepository.save(employee);
+    }
+
+    @Override
+    public Employee updateEmployee(Employee employee) {
+        return employeeRepository.save(employee);
+    }
+
+    // Start of AI modification for HDU-EMP-003
+    @Override
+    public void deleteEmployeeById(Long id) {
+        Optional<Employee> employee = employeeRepository.findById(id);
+        if (employee.isPresent()) {
+            if ("Femenino".equals(employee.get().getGender())) {
+                throw new CannotDeleteEmployeeException("Cannot delete female employee with id " + id);
+            } else {
+                employeeRepository.deleteById(id);
+            }
+        }
+    }
+    // End of AI modification for HDU-EMP-003
+}
 
