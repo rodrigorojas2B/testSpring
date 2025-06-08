@@ -1,29 +1,27 @@
 package test.core.api.service.impl;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
+import org.springframework.stereotype.Service;
+import test.core.api.exception.CannotDeleteEmployeeException;
 import test.core.api.model.Employee;
 import test.core.api.repository.EmployeeRepository;
-import test.core.api.service.EmployeeService;
 
-@Component
-public class EmployeeServiceImpl implements EmployeeService {
-	
-	    @Autowired
-	    private EmployeeRepository repository;
+@Service
+public class EmployeeServiceImpl {
 
-	    public List<Employee> getAllEmployees() {
-	        return (List<Employee>) repository.findAll();
-	    }
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
-	    public void deleteEmployeeById(Long id) {
-	        repository.deleteById(id);
-	    }
-
-	    public Employee saveEmployee(Employee employee) {
-	        return repository.save(employee); 
-	    }
+    public void deleteEmployeeById(Long id) {
+        Employee employee = employeeRepository.findById(id).orElse(null);
+        if (employee != null) {
+            // Inicio de modificación por IA
+            if ("Femenino".equals(employee.getGender())) {
+                throw new CannotDeleteEmployeeException("No se puede eliminar un empleado de género femenino");
+            }
+            // Fin de modificación por IA
+            employeeRepository.delete(employee);
+        }
+    }
 }
+

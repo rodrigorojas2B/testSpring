@@ -1,36 +1,3 @@
---- CLASE MODIFICADA ---
-
-package test.core.api.service.impl;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import test.core.api.exception.CannotDeleteEmployeeException;
-import test.core.api.model.Employee;
-import test.core.api.repository.EmployeeRepository;
-import test.core.api.service.EmployeeService;
-
-@Service
-public class EmployeeServiceImpl implements EmployeeService {
-
-    @Autowired
-    private EmployeeRepository employeeRepository;
-
-    @Override
-    public void deleteEmployeeById(Long id) {
-        // Start of AI modification
-        Employee employee = employeeRepository.findById(id).orElse(null);
-        if (employee != null && "Femenino".equals(employee.getGender())) {
-            throw new CannotDeleteEmployeeException("Cannot delete female employee with id: " + id);
-        }
-        // End of AI modification
-        employeeRepository.deleteById(id);
-    }
-
-    // Other existing methods...
-}
-
---- NUEVA CLASE ---
-
 package test.core.api.exception;
 
 public class CannotDeleteEmployeeException extends RuntimeException {
@@ -39,7 +6,32 @@ public class CannotDeleteEmployeeException extends RuntimeException {
     }
 }
 
---- TEST UNITARIO NUEVO ---
+package test.core.api.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import test.core.api.exception.CannotDeleteEmployeeException;
+import test.core.api.model.Employee;
+import test.core.api.repository.EmployeeRepository;
+
+@Service
+public class EmployeeServiceImpl {
+
+    @Autowired
+    private EmployeeRepository employeeRepository;
+
+    public void deleteEmployeeById(Long id) {
+        Employee employee = employeeRepository.findById(id).orElse(null);
+        if (employee != null) {
+            // Inicio de modificación por IA
+            if ("Femenino".equals(employee.getGender())) {
+                throw new CannotDeleteEmployeeException("No se puede eliminar un empleado de género femenino");
+            }
+            // Fin de modificación por IA
+            employeeRepository.delete(employee);
+        }
+    }
+}
 
 package test.core.api.service.impl;
 
@@ -67,7 +59,7 @@ public class EmployeeServiceImplTest {
     private EmployeeServiceImpl employeeService;
 
     @Test
-    public void deleteEmployeeById_FemaleEmployee_ThrowsException() {
+    public void testDeleteFemaleEmployeeThrowsException() {
         Employee femaleEmployee = new Employee();
         femaleEmployee.setGender("Femenino");
         when(employeeRepository.findById(1L)).thenReturn(Optional.of(femaleEmployee));
@@ -76,11 +68,11 @@ public class EmployeeServiceImplTest {
     }
 
     @Test
-    public void deleteEmployeeById_MaleEmployee_AllowsDeletion() {
+    public void testDeleteMaleEmployeeDoesNotThrowException() {
         Employee maleEmployee = new Employee();
         maleEmployee.setGender("Masculino");
         when(employeeRepository.findById(1L)).thenReturn(Optional.of(maleEmployee));
 
-        employeeService.deleteEmployeeById(1L);  // No exception should be thrown
+        employeeService.deleteEmployeeById(1L);
     }
 }

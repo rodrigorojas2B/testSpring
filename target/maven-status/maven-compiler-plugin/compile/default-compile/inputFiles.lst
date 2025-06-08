@@ -1,9 +1,7 @@
+/home/runner/work/testSpring/testSpring/repositorio-base/src/main/java/test/core/api/exception/CannotDeleteEmployeeException.java
 /home/runner/work/testSpring/testSpring/repositorio-base/src/main/java/test/core/api/repository/EmployeeRepository.java
 /home/runner/work/testSpring/testSpring/repositorio-base/src/main/java/test/core/api/controller/EmployeeController.java
-/home/runner/work/testSpring/testSpring/repositorio-base/src/main/java/ai/generated/EmployeeServiceImpl.java
 /home/runner/work/testSpring/testSpring/repositorio-base/src/main/java/test/core/api/EmployeeCoreApiApplication.java
 /home/runner/work/testSpring/testSpring/repositorio-base/src/main/java/test/core/api/service/EmployeeService.java
-/home/runner/work/testSpring/testSpring/repositorio-base/src/main/java/ai/generated/CannotDeleteEmployeeException.java
-/home/runner/work/testSpring/testSpring/repositorio-base/src/main/java/ai/generated/ClaseGenerada_1.java
 /home/runner/work/testSpring/testSpring/repositorio-base/src/main/java/test/core/api/model/Employee.java
 /home/runner/work/testSpring/testSpring/repositorio-base/src/main/java/test/core/api/service/impl/EmployeeServiceImpl.java

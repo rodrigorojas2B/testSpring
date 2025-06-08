@@ -24,7 +24,7 @@ public class EmployeeServiceImplTest {
     private EmployeeServiceImpl employeeService;
 
     @Test
-    public void deleteEmployeeById_FemaleEmployee_ThrowsException() {
+    public void testDeleteFemaleEmployeeThrowsException() {
         Employee femaleEmployee = new Employee();
         femaleEmployee.setGender("Femenino");
         when(employeeRepository.findById(1L)).thenReturn(Optional.of(femaleEmployee));
@@ -33,11 +33,11 @@ public class EmployeeServiceImplTest {
     }
 
     @Test
-    public void deleteEmployeeById_MaleEmployee_AllowsDeletion() {
+    public void testDeleteMaleEmployeeDoesNotThrowException() {
         Employee maleEmployee = new Employee();
         maleEmployee.setGender("Masculino");
         when(employeeRepository.findById(1L)).thenReturn(Optional.of(maleEmployee));
 
-        employeeService.deleteEmployeeById(1L);  // No exception should be thrown
+        employeeService.deleteEmployeeById(1L);
     }
 }

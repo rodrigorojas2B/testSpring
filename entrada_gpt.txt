@@ -255,21 +255,74 @@ public class EmployeeServiceImpl implements EmployeeService {
 	        return repository.save(employee); 
 	    }
 }
+
+// Archivo: src/main/java/ai/generated/EmployeeServiceImpl.java
+
+package test.core.api.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import test.core.api.exception.CannotDeleteEmployeeException;
+import test.core.api.model.Employee;
+import test.core.api.repository.EmployeeRepository;
+import test.core.api.service.EmployeeService;
+
+@Service
+public class EmployeeServiceImpl implements EmployeeService {
+
+    @Autowired
+    private EmployeeRepository employeeRepository;
+
+    @Override
+    public void deleteEmployeeById(Long id) {
+        // Start of AI modification
+        Employee employee = employeeRepository.findById(id).orElse(null);
+        if (employee != null && "Femenino".equals(employee.getGender())) {
+            throw new CannotDeleteEmployeeException("Cannot delete female employee with id: " + id);
+        }
+        // End of AI modification
+        employeeRepository.deleteById(id);
+    }
+
+    // Other existing methods...
+}
+
+--- NUEVA CLASE ---
+
+
+
+// Archivo: src/main/java/ai/generated/CannotDeleteEmployeeException.java
+
+package test.core.api.exception;
+
+public class CannotDeleteEmployeeException extends RuntimeException {
+    public CannotDeleteEmployeeException(String message) {
+        super(message);
+    }
+}
+
+--- TEST UNITARIO NUEVO ---
+
+
 --- ANÁLISIS DE CLASES EXISTENTES ---
 Genera una tabla Markdown como esta:
 
-| Clase Java | Clasificación | Motivo |
-|------------|----------------|--------|
-| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` |
-| EmployeeServiceImpl | MODIFICABLE | Debe validar antes de borrar |
-| NuevaClaseX | NUEVA | Requerida por funcionalidad nueva |
+| Clase Java | Package | Clasificación | Motivo |
+|------------|---------|----------------|--------|
+| Employee | com.example.EmployeeCoreApi.model | REUTILIZABLE-AS-IS | Contiene atributo `gender` |
+| EmployeeServiceImpl | com.example.EmployeeCoreApi.service.impl | MODIFICABLE | Debe validar antes de borrar |
+| CannotDeleteEmployeeException | com.example.EmployeeCoreApi.exception | NUEVA | Requerida para lanzar excepción |
+| EmployeeServiceImplTest | com.example.EmployeeCoreApi.service.impl | NUEVA | Pruebas unitarias de validación |
 
 --- INSTRUCCIONES DE MODIFICACIÓN ---
 - No eliminar ni reemplazar lógica existente.
 - Si se modifica un método, incluirlo completo con el nuevo código y lo que ya tenía.
 - Solo generar clases nuevas si están indicadas como NUEVA.
+- Cada clase debe estar en su package correcto, según lo indicado en la tabla.
 - NO repetir clases ya existentes si no cambian.
+- NO eliminar los métodos existentes a menos que sea necesario
+- NO reemplazar métodos u otro contenido de las clases existentes por comentarios entre líneas
 
 --- CÓDIGO A GENERAR ---
 Devuelve solo clases Java válidas. Cada bloque debe comenzar con `package ...`.
-También incluye tests JUnit5 si aplica.
+Incluye los tests JUnit5 en el mismo formato si aplica.
