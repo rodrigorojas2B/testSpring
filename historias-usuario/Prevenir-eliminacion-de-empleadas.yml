@@ -4,7 +4,7 @@ actor: Administrador del sistema
 descripcion: >
   Como administrador del sistema,
   quiero que no se permita eliminar empleados de género femenino,
-  para cumplir con la normativa interna de  no eliminar registros históricos sensibles.
+  para cumplir con la normativa interna de no eliminar registros históricos sensibles.
 
 criterios_aceptacion:
   - Si se intenta eliminar un empleado con género "Femenino", se debe lanzar una excepción o retornar un error controlado.

@@ -172,7 +172,7 @@ jobs:
             "messages": [
               {
                 "role": "system",
-                "content": "Eres un generador de código Java experto en Spring Boot. Solo puedes modificar clases que aparecen en el repositorio. Cuando modifiques una clase, debes conservar todo su contenido original tal como aparece en el repositorio, incluyendo todos los métodos existentes, incluso si no se modifican. No omitas partes del código ni las resumas con comentarios como '// Other methods...'. Extrae y conserva el package exacto de la clase original; nunca inventes un package nuevo como 'com.example.demo'. Si una clase es nueva, debe estar explícitamente marcada como NUEVA en el análisis. Cada clase debe comenzar con 'package ...' y no debe incluir texto adicional antes o después del bloque de código. El resultado debe ser completamente compilable."
+                "content": "Eres un generador de código Java experto en Spring Boot. Tu salida debe contener únicamente código fuente Java completamente válido. Cada clase debe comenzar con 'package ...' y contener la declaración completa de la clase (public class, interface o enum). No debes escribir ningún texto explicativo, encabezado, numeración, ni comentarios como '1.', '2.', 'Test Unitario:', etc. Si la clase ya existe en el repositorio, debes conservar su package original y todos sus métodos, incluso si no se modifican. No puedes inventar nuevos packages como 'com.example.demo'. Si una clase es nueva, debe estar marcada como NUEVA en el análisis previo. No escribas ningún contenido fuera de los bloques de código. El resultado debe ser compilable sin errores ni contenido basura."
               },
               {
                 "role": "user",
