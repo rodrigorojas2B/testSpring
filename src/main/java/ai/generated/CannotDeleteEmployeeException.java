@@ -6,5 +6,5 @@ public class CannotDeleteEmployeeException extends RuntimeException {
     }
 }
 
---- TEST UNITARIO NUEVO ---
+3. Test unitario para la nueva funcionalidad:
 

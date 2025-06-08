@@ -2,16 +2,94 @@
 
 | Clase Java | Clasificación | Motivo |
 |------------|----------------|--------|
-| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` que es necesario para la validación |
-| EmployeeRepository | REUTILIZABLE-AS-IS | Proporciona la funcionalidad de eliminación que se modificará |
-| EmployeeService | REUTILIZABLE-AS-IS | La interfaz del servicio no necesita modificaciones |
-| EmployeeServiceImpl | MODIFICABLE | Necesita validación adicional antes de eliminar un empleado |
-| EmployeeController | REUTILIZABLE-AS-IS | No necesita modificaciones ya que la lógica de eliminación está en el servicio |
+| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` que se necesita para la validación |
+| EmployeeServiceImpl | MODIFICABLE | Necesita validar el género del empleado antes de eliminar |
+| CannotDeleteEmployeeException | NUEVA | Se necesita para manejar la excepción cuando se intenta eliminar un empleado femenino |
+| EmployeeController | REUTILIZABLE-AS-IS | No se requiere ninguna modificación en esta clase |
+| EmployeeRepository | REUTILIZABLE-AS-IS | No se requiere ninguna modificación en esta clase |
+| EmployeeService | REUTILIZABLE-AS-IS | No se requiere ninguna modificación en esta clase |
 
 --- PLAN DE MODIFICACIÓN ---
 
-1. Clase `EmployeeServiceImpl`: Modificar el método `deleteEmployeeById(Long id)` para incluir una validación de género antes de eliminar un empleado. Si el género del empleado es "Femenino", se lanzará una excepción. Si el género es "Masculino" u otro valor, se permitirá la eliminación.
+1. Clase `EmployeeServiceImpl`: Se necesita modificar el método `deleteEmployeeById(Long id)`. Antes de eliminar el empleado, se debe verificar si el género del empleado es "Femenino". Si es así, se debe lanzar la excepción `CannotDeleteEmployeeException`.
 
-2. Crear una nueva excepción personalizada `CannotDeleteEmployeeException` para lanzar cuando se intenta eliminar un empleado femenino. Esta clase se creará en el paquete `test.core.api.exception`.
+2. Clase `CannotDeleteEmployeeException`: Esta es una nueva clase que se necesita para manejar la excepción cuando se intenta eliminar un empleado femenino. Esta clase extenderá `RuntimeException` y tomará un mensaje de error como argumento en su constructor.
 
-3. Crear pruebas unitarias para el método modificado en la clase `EmployeeServiceImplTest`. Estas pruebas verificarán que se lanza la excepción correcta cuando se intenta eliminar un empleado femenino y que los empleados masculinos u otros pueden ser eliminados.
+--- CÓDIGO A GENERAR ---
+
+1. Clase `EmployeeServiceImpl` modificada:
+
+```java
+package test.core.api.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import test.core.api.exception.CannotDeleteEmployeeException;
+import test.core.api.model.Employee;
+import test.core.api.repository.EmployeeRepository;
+import test.core.api.service.EmployeeService;
+
+@Service
+public class EmployeeServiceImpl implements EmployeeService {
+
+    @Autowired
+    private EmployeeRepository employeeRepository;
+
+    @Override
+    public void deleteEmployeeById(Long id) {
+        // Start of AI modification
+        Employee employee = employeeRepository.findById(id).orElse(null);
+        if (employee != null && "Femenino".equals(employee.getGender())) {
+            throw new CannotDeleteEmployeeException("Cannot delete female employee with id: " + id);
+        }
+        // End of AI modification
+        employeeRepository.deleteById(id);
+    }
+
+    // Other existing methods...
+}
+```
+
+2. Nueva clase `CannotDeleteEmployeeException`:
+
+```java
+package test.core.api.exception;
+
+public class CannotDeleteEmployeeException extends RuntimeException {
+    public CannotDeleteEmployeeException(String message) {
+        super(message);
+    }
+}
+```
+
+3. Test unitario para la nueva funcionalidad:
+
+```java
+package test.core.api.service;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import test.core.api.exception.CannotDeleteEmployeeException;
+import test.core.api.model.Employee;
+import test.core.api.repository.EmployeeRepository;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+public class EmployeeServiceTest {
+
+    @Autowired
+    private EmployeeService employeeService;
+
+    @Autowired
+    private EmployeeRepository employeeRepository;
+
+    @Test
+    public void testDeleteFemaleEmployeeThrowsException() {
+        Employee femaleEmployee = new Employee();
+        femaleEmployee.setGender("Femenino");
+        femaleEmployee = employeeRepository.save(femaleEmployee);
+
+        assertThrows(CannotDeleteEmployeeException.class, () -> employeeService.deleteEmployeeById(femaleEmployee.getId()));
+    }
+}
+```

@@ -27,5 +27,5 @@ public class EmployeeServiceImpl implements EmployeeService {
     // Other existing methods...
 }
 
---- NUEVA CLASE ---
+2. Nueva clase `CannotDeleteEmployeeException`:
 
