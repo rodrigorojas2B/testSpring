@@ -1,10 +1,8 @@
-package test.core.api.exception;
+package com.company.employee;
 
 public class CannotDeleteEmployeeException extends RuntimeException {
     public CannotDeleteEmployeeException(String message) {
         super(message);
     }
 }
-
---- TEST UNITARIO NUEVO ---
 
