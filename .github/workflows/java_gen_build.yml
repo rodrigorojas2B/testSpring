@@ -314,6 +314,9 @@ jobs:
       
           while [ $intentos -lt 3 ]; do
             echo "🔁 Intento de compilación #$((intentos+1))"
+      
+            cp src/main/java/test/core/api/service/impl/EmployeeServiceImpl.java codigo_fallido.java
+      
             if mvn compile; then
               echo "✅ Compilación exitosa"
               exito=1
@@ -323,19 +326,30 @@ jobs:
             echo "❌ Falló la compilación. Capturando errores..."
             mvn compile > error_build.log 2>&1 || true
       
-            echo "🧠 Preparando análisis de errores..."
+            echo "🧠 Análisis de error con GPT (Diagnóstico)..."
+            DIAG_PROMPT=$(jq -Rs . <<EOF
+            --- LOG DE COMPILACIÓN FALLIDA ---
+            $(cat error_build.log)
+            
+            --- CÓDIGO ACTUAL CON ERROR ---
+            $(cat codigo_fallido.java)
+            
+            --- INSTRUCCIONES ---
+            Eres un experto compilador de Java. Analiza el error y entrega un plan de corrección estructurado. 
+            Indica el archivo afectado, línea y explicación. No entregues código, solo el plan de corrección.
+            EOF
+            )
+      
+            cat <<EOF > payload_diagnostico_errores.json
             {
-              echo "--- LOG DE COMPILACIÓN FALLIDA ---"
-              cat error_build.log
-              echo
-              echo "--- INSTRUCCIONES ---"
-              echo "Eres un experto compilador de Java. Analiza los errores mostrados y entrega solo un plan de corrección breve y estructurado, indicando los archivos involucrados, los problemas y qué se debe corregir. No devuelvas código, solo la lista clara de correcciones."
-            } > prompt_diag.txt
-      
-            DIAG_PROMPT=$(jq -Rs . < prompt_diag.txt)
-      
-            echo "📤 Enviando análisis a GPT..."
-            echo "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"system\",\"content\":\"Eres un experto en compilación de Java. Devuelve solo un plan de corrección para los errores mostrados.\"},{\"role\":\"user\",\"content\":$DIAG_PROMPT}],\"temperature\":0.2}" > payload_diagnostico_errores.json
+              "model": "gpt-4",
+              "messages": [
+                { "role": "system", "content": "Eres un experto compilador Java. Entrega solo un plan de corrección." },
+                { "role": "user", "content": $DIAG_PROMPT }
+              ],
+              "temperature": 0.2
+            }
+            EOF
       
             curl -s https://api.openai.com/v1/chat/completions \
               -H "Authorization: Bearer $OPENAI_API_KEY" \
@@ -343,26 +357,35 @@ jobs:
               -d @payload_diagnostico_errores.json > respuesta_diagnostico.json
       
             PLAN_CORRECCION=$(jq -r '.choices[0].message.content' respuesta_diagnostico.json)
+      
             echo "📋 Plan de corrección recibido:"
             echo "$PLAN_CORRECCION"
       
-            echo "🧠 Preparando prompt de código corregido..."
+            echo "🧠 Generando código corregido con GPT..."
+            CODIGO_PROMPT=$(jq -Rs . <<EOF
+            --- PLAN DE CORRECCIÓN ---
+            $PLAN_CORRECCION
+            
+            --- CÓDIGO ACTUAL CON ERROR ---
+            $(cat codigo_fallido.java)
+            
+            --- INSTRUCCIONES ---
+            Corrige el código entregado según el plan anterior. Devuelve solo código Java válido.
+            Cada clase debe comenzar con 'package ...'. No uses backticks. No incluyas explicaciones.
+            EOF
+            )
+      
+            cat <<EOF > payload_codigo_corregido.json
             {
-              echo "--- PLAN DE CORRECCIÓN ---"
-              echo "$PLAN_CORRECCION"
-              echo
-              echo "--- CÓDIGO ACTUAL ---"
-              cat clases_generadas.java
-              echo
-              echo "--- INSTRUCCIONES ---"
-              echo "Corrige el código entregado según el plan anterior. Devuelve solo clases Java válidas. Cada clase debe comenzar con 'package ...'. No incluyas explicaciones ni encabezados. No utilices backticks (\`)."
-            } > prompt_cod.txt
+              "model": "gpt-4",
+              "messages": [
+                { "role": "system", "content": "Eres un generador de código Java. Devuelve solo clases completas y corregidas." },
+                { "role": "user", "content": $CODIGO_PROMPT }
+              ],
+              "temperature": 0.3
+            }
+            EOF
       
-            CODIGO_PROMPT=$(jq -Rs . < prompt_cod.txt)
-      
-            echo "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"system\",\"content\":\"Eres un generador de código Java. Devuelve solo clases completas y válidas según el plan de corrección.\"},{\"role\":\"user\",\"content\":$CODIGO_PROMPT}],\"temperature\":0.3}" > payload_codigo_corregido.json
-      
-            echo "📤 Enviando código a GPT para corrección..."
             curl -s https://api.openai.com/v1/chat/completions \
               -H "Authorization: Bearer $OPENAI_API_KEY" \
               -H "Content-Type: application/json" \
@@ -371,11 +394,14 @@ jobs:
             jq -r '.choices[0].message.content // "❌ Sin contenido válido."' respuesta_codigo.json \
               | sed '/^```/d' > clases_generadas.java
       
-            echo "🔄 Código corregido recibido. Regenerando archivos..."
+            echo "📄 Código generado (clases_generadas.java):"
+            cat clases_generadas.java
+      
+            echo "🔄 Regenerando archivos Java..."
             rm -f clase_*.java
+      
             sed -i 's/`//g' clases_generadas.java
             sed -i '1,/^package /{/^package /!d}' clases_generadas.java
-      
             csplit --quiet --prefix=clase_ --suffix-format=%02d.java clases_generadas.java "/^package /" {*}
       
             mkdir -p src/main/java/ai/generated
@@ -397,9 +423,10 @@ jobs:
           done
       
           if [ $exito -eq 0 ]; then
-            echo "❌ Se alcanzó el máximo de intentos de corrección sin éxito"
+            echo "❌ Se alcanzó el máximo de intentos sin éxito"
             exit 1
           fi
+        
         
       - name: Commit y push de la nueva funcionalidad (si todo compila)
         if: success()
