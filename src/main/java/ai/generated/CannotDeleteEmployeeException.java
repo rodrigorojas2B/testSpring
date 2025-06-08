@@ -1,4 +1,4 @@
-package test.core.api.exception;
+package com.example.employeecoreapi.exception;
 
 public class CannotDeleteEmployeeException extends RuntimeException {
     public CannotDeleteEmployeeException(String message) {
@@ -6,5 +6,5 @@ public class CannotDeleteEmployeeException extends RuntimeException {
     }
 }
 
---- TEST UNITARIO NUEVO ---
+3. Pruebas unitarias para `EmployeeServiceImpl`:
 

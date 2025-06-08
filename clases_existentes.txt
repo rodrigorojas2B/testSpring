@@ -4,3 +4,6 @@ src/main/java/test/core/api/EmployeeCoreApiApplication.java
 src/main/java/test/core/api/controller/EmployeeController.java
 src/main/java/test/core/api/service/EmployeeService.java
 src/main/java/test/core/api/service/impl/EmployeeServiceImpl.java
+src/main/java/ai/generated/ClaseGenerada_1.java
+src/main/java/ai/generated/EmployeeServiceImpl.java
+src/main/java/ai/generated/CannotDeleteEmployeeException.java
