@@ -1,0 +1,329 @@
+name: Generar funcionalidad desde historia de usuario
+
+on:
+  push:
+    paths:
+      - 'historias-usuario/**.yml'
+
+jobs:
+  generar_codigo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar repositorio actual
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+          path: repositorio-base
+
+      - name: Detectar historia de usuario modificada
+        id: historia
+        run: |
+          cd repositorio-base
+          git fetch --unshallow || true
+          base_sha="${{ github.event.before }}"
+          if ! git cat-file -e "$base_sha"^{commit} 2>/dev/null; then
+            echo "⚠️ SHA base no válido o sin historial, usando HEAD^"
+            base_sha="HEAD^"
+          fi
+          echo "🔍 Comparando con base: $base_sha"
+          archivo=$(git diff --name-only "$base_sha" HEAD | grep '^historias-usuario/.*\.yml$' | head -n 1 || true)
+          if [ -z "$archivo" ]; then
+            echo "⛔ No se encontró ninguna historia de usuario modificada. Abortando."
+            exit 1
+          fi
+          echo "ruta=$archivo" >> "$GITHUB_OUTPUT"
+
+      - name: Leer contenido de historia de usuario
+        run: |
+          cd repositorio-base
+          cat "${{ steps.historia.outputs.ruta }}" > entrada_gpt.txt
+
+      - name: Instalar dependencias necesarias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq unzip openjdk-17-jdk maven
+
+      - name: Indexar y agregar contenido de clases Java existentes al prompt
+        run: |
+          cd repositorio-base
+
+          echo "📁 Buscando clases Java..."
+          find src/main/java -type f -name "*.java" > clases_existentes.txt
+
+          if [ ! -s clases_existentes.txt ]; then
+            echo "❌ No se encontraron archivos .java. Abortando."
+            exit 1
+          fi
+
+          echo -e "\n\n--- HISTORIA DE USUARIO ---" > entrada_gpt.txt
+          cat "${{ steps.historia.outputs.ruta }}" >> entrada_gpt.txt
+
+          echo -e "\n\n--- CÓDIGO EXISTENTE DEL PROYECTO ---" >> entrada_gpt.txt
+
+          while read -r clase; do
+            echo -e "\n\n// Archivo: $clase\n" >> entrada_gpt.txt
+
+            # Validación fuerte: si el archivo contiene '// Other methods...', aborta
+            if grep -q '// Other methods' "$clase"; then
+              echo "⛔ El archivo $clase contiene '// Other methods...'. Reemplázalo por el código real antes de continuar."
+              exit 1
+            fi
+
+            cat "$clase" >> entrada_gpt.txt
+          done < clases_existentes.txt
+
+          cat <<'EOF' >> entrada_gpt.txt
+
+          --- ANÁLISIS DE CLASES EXISTENTES ---
+          Genera una tabla Markdown como esta:
+
+          | Clase Java | Package | Clasificación | Motivo |
+          |------------|---------|----------------|--------|
+          | Employee | com.example.EmployeeCoreApi.model | REUTILIZABLE-AS-IS | Contiene atributo `gender` |
+          | EmployeeServiceImpl | com.example.EmployeeCoreApi.service.impl | MODIFICABLE | Debe validar antes de borrar |
+          | CannotDeleteEmployeeException | com.example.EmployeeCoreApi.exception | NUEVA | Requerida para lanzar excepción |
+          | EmployeeServiceImplTest | com.example.EmployeeCoreApi.service.impl | NUEVA | Pruebas unitarias de validación |
+
+          --- INSTRUCCIONES DE MODIFICACIÓN ---
+          - No eliminar ni reemplazar lógica existente.
+          - Si se modifica un método, incluirlo completo con el nuevo código y lo que ya tenía.
+          - Solo generar clases nuevas si están indicadas como NUEVA.
+          - Cada clase debe estar en su package correcto, según lo indicado en la tabla.
+          - NO repetir clases ya existentes si no cambian.
+          - NO eliminar los métodos existentes a menos que sea necesario
+          - NO reemplazar métodos u otro contenido de las clases existentes por comentarios entre líneas
+
+          --- CÓDIGO A GENERAR ---
+          Devuelve solo clases Java válidas. Cada bloque debe comenzar con `package ...`.
+          Incluye los tests JUnit5 en el mismo formato si aplica.
+          EOF
+
+
+      - name: Mostrar tabla de diagnóstico (si existe)
+        run: |
+          echo "📋 Tabla de clases según GPT:"
+          grep '|' repositorio-base/respuesta_gpt.json || echo "⚠️ GPT no generó tabla de diagnóstico"
+
+      - name: Llamar a OpenAI para diagnóstico (solo análisis y clasificación)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          cd repositorio-base
+
+          jq -Rs --arg SYSTEM_MSG "Eres un analizador experto de código Java. Devuelve solo el análisis de clases existentes y el plan de modificación. No devuelvas código aún." '{
+            model: "gpt-4",
+            messages: [
+              { "role": "system", "content": $SYSTEM_MSG },
+              { "role": "user", "content": . }
+            ],
+            temperature: 0.2
+          }' entrada_gpt.txt > payload_diagnostico.json
+
+          curl -s https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @payload_diagnostico.json > respuesta_gpt_diagnostico.json
+
+          echo "📨 Respuesta de OpenAI:"
+          cat respuesta_gpt_diagnostico.json
+
+          jq -r '.choices[0].message.content // "❌ GPT no devolvió contenido válido."' respuesta_gpt_diagnostico.json > diagnostico_gpt.txt
+
+      - name: Mostrar análisis GPT
+        run: |
+          echo "📋 Tabla de diagnóstico de clases:"
+          cat repositorio-base/diagnostico_gpt.txt || echo "⚠️ No se pudo leer diagnóstico"
+
+      - name: Preparar entrada para generación de código
+        run: |
+          cd repositorio-base
+
+          echo "--- HISTORIA DE USUARIO ---" > entrada_final_gpt.txt
+          cat "${{ steps.historia.outputs.ruta }}" >> entrada_final_gpt.txt
+
+          echo -e "\n\n--- DIAGNÓSTICO Y PLAN DE CLASES ---" >> entrada_final_gpt.txt
+          cat diagnostico_gpt.txt >> entrada_final_gpt.txt
+
+          cat <<'EOF' >> entrada_final_gpt.txt
+
+          --- INSTRUCCIONES DE GENERACIÓN DE CÓDIGO ---
+          - Modifica únicamente las clases marcadas como MODIFICABLE.
+          - Crea nuevas clases solo si están indicadas como NUEVA.
+          - No cambies de paquete ni nombre de clase.
+          - Si modificas un método, inclúyelo completo con su lógica anterior más la nueva.
+          - No omitas lógica existente.
+          - Cada clase debe comenzar con `package ...`.
+          - Devuelve únicamente clases y tests JUnit 5 válidos.
+          - No incluyas explicaciones ni comentarios adicionales.
+
+          EOF
+
+
+      - name: Llamar a OpenAI para generación de código
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          cd repositorio-base
+
+          # Guardamos el contenido del prompt como variable segura
+          PROMPT=$(cat entrada_final_gpt.txt | jq -Rs .)
+
+          # Creamos el JSON de payload
+          cat <<EOF > payload_generacion.json
+          {
+            "model": "gpt-4",
+            "messages": [
+              {
+                "role": "system",
+                "content": "Eres un generador de código Java experto en Spring Boot. Tu salida debe contener únicamente código fuente Java completamente válido. Cada clase debe comenzar con 'package ...' y contener la declaración completa de la clase (public class, interface o enum). No debes escribir ningún texto explicativo, encabezado, numeración, ni comentarios como '1.', '2.', 'Test Unitario:', etc. Si la clase ya existe en el repositorio, debes conservar su package original y todos sus métodos, incluso si no se modifican. No puedes inventar nuevos packages como 'com.example.demo'. Si una clase es nueva, debe estar marcada como NUEVA en el análisis previo. No escribas ningún contenido fuera de los bloques de código. El resultado debe ser compilable sin errores ni contenido basura."
+              },
+              {
+                "role": "user",
+                "content": $PROMPT
+              }
+            ],
+            "temperature": 0.3
+          }
+          EOF
+
+          echo "🧾 Payload generado para OpenAI:"
+          cat payload_generacion.json
+
+          curl -s https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @payload_generacion.json > respuesta_gpt.json
+
+          echo "📨 Respuesta de OpenAI:"
+          cat respuesta_gpt.json
+
+          jq -r '.choices[0].message.content // "❌ GPT no devolvió contenido válido."' respuesta_gpt.json \
+          | sed '/^```/d' \
+          > clases_generadas.java
+
+      - name: Limpiar y separar clases generadas
+        run: |
+          cd repositorio-base
+      
+          # === LIMPIEZA DE BLOQUE GPT ===
+          echo "🧹 Limpiando residuos de formato GPT..."
+          sed -i '/^---/d' clases_generadas.java
+          sed -i '/^```/d' clases_generadas.java
+          sed -i '/^\/\/ Clase de prueba:/d' clases_generadas.java
+          sed -i '/^\/\/ Clase modificada:/d' clases_generadas.java
+          sed -i '/^\/\/ Resto de los métodos existentes\.\.\./d' clases_generadas.java
+          sed -i '/^# .*$/d' clases_generadas.java
+          sed -i '/^--- CLASE MODIFICADA ---/d' clases_generadas.java
+          sed -i '${/^$/d;}' clases_generadas.java
+          # 🔍 Eliminar encabezados tipo markdown que confunden la separación de clases
+          sed -i '/^[0-9]\+\.\s\+Clase/d' clases_generadas.java
+          sed -i '/^[0-9]\+\.\s\+Pruebas/d' clases_generadas.java
+          sed -i '/^.*Clase.*nueva.*$/d' clases_generadas.java
+          sed -i '/^.*Pruebas.*$/d' clases_generadas.java
+
+      
+          # === ELIMINAR LÍNEAS ANTES DEL PRIMER package ===
+          sed -i '1,/^package /{/^package /!d}' clases_generadas.java
+      
+          # === SEPARACIÓN DE CLASES ===
+          echo "📂 Separando clases en archivos individuales..."
+          mkdir -p src/main/java/ai/generated
+          mkdir -p src/test/java/ai/generated
+          csplit --quiet --prefix=clase_ --suffix-format=%02d.java clases_generadas.java "/^package /" {*}
+      
+          echo "📂 Procesando archivos clase_*.java..."
+
+          i=1
+          for file in clase_*.java; do
+            echo "🔍 Analizando archivo: $file"
+
+            # Validar que el archivo contiene declaración de paquete válida
+            if ! grep -qE '^\s*package\s+[a-zA-Z0-9_.]+;' "$file"; then
+              echo "⚠️ Archivo $file no contiene declaración de paquete válida. Eliminando."
+              rm "$file"
+              continue
+            fi
+
+            # Validar que contiene una clase, interfaz o enum
+            if ! grep -qE '\b(class|interface|enum)\b' "$file"; then
+              echo "⚠️ Archivo $file no contiene clase, interfaz ni enum. Eliminando."
+              rm "$file"
+              continue
+            fi
+
+            # Obtener nombre de la clase, interfaz o enum
+            class_name=$(grep -oP 'public\s+(class|interface|enum)\s+\K\w+' "$file" | head -n 1)
+
+            # Validar que se haya encontrado un nombre de clase
+            if [ -z "$class_name" ]; then
+              echo "⚠️ No se pudo determinar el nombre de clase en $file. Eliminando."
+              rm "$file"
+              continue
+            fi
+
+            # Determinar si es test
+            if grep -q '@Test' "$file"; then
+              dest="src/test/java/ai/generated"
+              echo "✅ Clasificado como TEST -> $dest/${class_name}.java"
+            else
+              dest="src/main/java/ai/generated"
+              echo "✅ Clasificado como CLASE -> $dest/${class_name}.java"
+            fi
+
+            mv "$file" "$dest/${class_name}.java"
+            i=$((i+1))
+          done
+
+
+      - name: Reemplazar clases generadas en ubicación original
+        run: |
+          cd repositorio-base
+
+          echo "📦 Detectando package y ubicación de cada clase..."
+
+          for file in src/main/java/ai/generated/*.java src/test/java/ai/generated/*.java; do
+            [ -e "$file" ] || continue
+
+            package_line=$(grep '^package ' "$file" | head -n 1)
+            package_path=$(echo "$package_line" | sed -E 's/package ([a-zA-Z0-9_.]+);/\1/' | tr '.' '/')
+            class_name=$(basename "$file")
+
+            if [[ "$file" == *test* ]]; then
+              dest="src/test/java/$package_path"
+            else
+              dest="src/main/java/$package_path"
+            fi
+
+            mkdir -p "$dest"
+            mv "$file" "$dest/$class_name"
+            echo "✅ Movido: $file -> $dest/$class_name"
+          done
+
+      - name: Ejecutar pruebas unitarias y validar compilación
+        run: |
+          cd repositorio-base
+          mvn clean test
+
+      - name: Commit y push de la nueva funcionalidad (si todo compila)
+        if: success()
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          cd repositorio-base
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git checkout -b feature/autogenerado-${{ github.run_id }}
+
+          git add .
+          echo "📄 Archivos listos para commitear:"
+          git diff --cached --name-status || echo "⚠️ No hay cambios detectados"
+
+          if git diff --cached --quiet; then
+            echo "⛔ No hay cambios para commitear, se omite push"
+            exit 0
+          fi
+
+          git commit -m "🤖 Funcionalidad generada desde historia de usuario"
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
+          git push origin HEAD
