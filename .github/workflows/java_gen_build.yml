@@ -327,7 +327,8 @@ jobs:
             mvn compile > error_build.log 2>&1 || true
       
             echo "🧠 Análisis de error con GPT (Diagnóstico)..."
-            DIAG_PROMPT=$(jq -Rs . <<EOF
+      
+            DIAG_PROMPT=$(jq -Rs . <<< "$(cat <<EOF
             --- LOG DE COMPILACIÓN FALLIDA ---
             $(cat error_build.log)
             
@@ -335,12 +336,12 @@ jobs:
             $(cat codigo_fallido.java)
             
             --- INSTRUCCIONES ---
-            Eres un experto compilador de Java. Analiza el error y entrega un plan de corrección estructurado. 
+            Eres un experto compilador de Java. Analiza el error y entrega un plan de corrección estructurado.
             Indica el archivo afectado, línea y explicación. No entregues código, solo el plan de corrección.
             EOF
-            )
+            )")
       
-            cat <<EOF > payload_diagnostico_errores.json
+            cat > payload_diagnostico_errores.json <<EOF
             {
               "model": "gpt-4",
               "messages": [
@@ -362,7 +363,8 @@ jobs:
             echo "$PLAN_CORRECCION"
       
             echo "🧠 Generando código corregido con GPT..."
-            CODIGO_PROMPT=$(jq -Rs . <<EOF
+      
+            CODIGO_PROMPT=$(jq -Rs . <<< "$(cat <<EOF
             --- PLAN DE CORRECCIÓN ---
             $PLAN_CORRECCION
             
@@ -373,9 +375,9 @@ jobs:
             Corrige el código entregado según el plan anterior. Devuelve solo código Java válido.
             Cada clase debe comenzar con 'package ...'. No uses backticks. No incluyas explicaciones.
             EOF
-            )
+            )")
       
-            cat <<EOF > payload_codigo_corregido.json
+            cat > payload_codigo_corregido.json <<EOF
             {
               "model": "gpt-4",
               "messages": [
@@ -394,7 +396,7 @@ jobs:
             jq -r '.choices[0].message.content // "❌ Sin contenido válido."' respuesta_codigo.json \
               | sed '/^```/d' > clases_generadas.java
       
-            echo "📄 Código generado (clases_generadas.java):"
+            echo "📄 Código generado:"
             cat clases_generadas.java
       
             echo "🔄 Regenerando archivos Java..."
