@@ -222,32 +222,49 @@ jobs:
           mkdir -p src/test/java/ai/generated
           csplit --quiet --prefix=clase_ --suffix-format=%02d.java clases_generadas.java "/^package /" {*}
       
+          echo "📂 Procesando archivos clase_*.java..."
+
           i=1
           for file in clase_*.java; do
-            # Validar que el archivo contiene 'package' y una definición de clase/interface/enum
+            echo "🔍 Analizando archivo: $file"
+
+            # Validar que el archivo contiene declaración de paquete válida
             if ! grep -qE '^\s*package\s+[a-zA-Z0-9_.]+;' "$file"; then
               echo "⚠️ Archivo $file no contiene declaración de paquete válida. Eliminando."
               rm "$file"
               continue
             fi
-      
+
+            # Validar que contiene una clase, interfaz o enum
             if ! grep -qE '\b(class|interface|enum)\b' "$file"; then
               echo "⚠️ Archivo $file no contiene clase, interfaz ni enum. Eliminando."
               rm "$file"
               continue
             fi
-      
+
+            # Obtener nombre de la clase, interfaz o enum
             class_name=$(grep -oP 'public\s+(class|interface|enum)\s+\K\w+' "$file" | head -n 1)
-      
+
+            # Validar que se haya encontrado un nombre de clase
+            if [ -z "$class_name" ]; then
+              echo "⚠️ No se pudo determinar el nombre de clase en $file. Eliminando."
+              rm "$file"
+              continue
+            fi
+
+            # Determinar si es test
             if grep -q '@Test' "$file"; then
               dest="src/test/java/ai/generated"
+              echo "✅ Clasificado como TEST -> $dest/${class_name}.java"
             else
               dest="src/main/java/ai/generated"
+              echo "✅ Clasificado como CLASE -> $dest/${class_name}.java"
             fi
-      
-            mv "$file" "$dest/${class_name:-ClaseGenerada_$i}.java"
+
+            mv "$file" "$dest/${class_name}.java"
             i=$((i+1))
           done
+
       
       
 
