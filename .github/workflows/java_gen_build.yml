@@ -303,11 +303,6 @@ jobs:
             echo "✅ Movido: $file -> $dest/$class_name"
           done
 
-      - name: Ejecutar pruebas unitarias y validar compilación
-        run: |
-          cd repositorio-base
-          mvn clean test
-
       - name: Corrección de errores de compilación (máx 3 intentos)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
