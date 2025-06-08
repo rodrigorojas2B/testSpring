@@ -212,6 +212,12 @@ jobs:
           sed -i '/^# .*$/d' clases_generadas.java
           sed -i '/^--- CLASE MODIFICADA ---/d' clases_generadas.java
           sed -i '${/^$/d;}' clases_generadas.java
+          # 🔍 Eliminar encabezados tipo markdown que confunden la separación de clases
+          sed -i '/^[0-9]\+\.\s\+Clase/d' clases_generadas.java
+          sed -i '/^[0-9]\+\.\s\+Pruebas/d' clases_generadas.java
+          sed -i '/^.*Clase.*nueva.*$/d' clases_generadas.java
+          sed -i '/^.*Pruebas.*$/d' clases_generadas.java
+
       
           # === ELIMINAR LÍNEAS ANTES DEL PRIMER package ===
           sed -i '1,/^package /{/^package /!d}' clases_generadas.java
@@ -273,19 +279,26 @@ jobs:
           cd repositorio-base
           mvn test || echo "⚠️ Algunos tests fallaron, revisar logs"
 
-      - name: Commit y push de la nueva funcionalidad
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          cd repositorio-base
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git checkout -b feature/autogenerado-${{ github.run_id }}
-          git add .
-          if git diff --cached --quiet; then
-            echo "⛔ No hay cambios para commitear, se omite push"
-            exit 0
-          fi
-          git commit -m "🤖 Funcionalidad generada desde historia de usuario"
-          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
-          git push origin HEAD
+          - name: Commit y push de la nueva funcionalidad
+          env:
+            GH_PAT: ${{ secrets.GH_PAT }}
+          run: |
+            cd repositorio-base
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git checkout -b feature/autogenerado-${{ github.run_id }}
+  
+            git add .
+  
+            echo "📄 Archivos listos para commitear:"
+            git diff --cached --name-status || echo "⚠️ No hay cambios detectados"
+  
+            if git diff --cached --quiet; then
+              echo "⛔ No hay cambios para commitear, se omite push"
+              exit 0
+            fi
+  
+            git commit -m "🤖 Funcionalidad generada desde historia de usuario"
+            git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
+            git push origin HEAD
+  
