@@ -1,11 +1,11 @@
-package test.core.api.service.impl;
+package com.example.demo.service.impl;
 
+import com.example.demo.exception.CannotDeleteEmployeeException;
+import com.example.demo.model.Employee;
+import com.example.demo.repository.EmployeeRepository;
+import com.example.demo.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import test.core.api.exception.CannotDeleteEmployeeException;
-import test.core.api.model.Employee;
-import test.core.api.repository.EmployeeRepository;
-import test.core.api.service.EmployeeService;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -27,5 +27,4 @@ public class EmployeeServiceImpl implements EmployeeService {
     // Other existing methods...
 }
 
---- NUEVA CLASE ---
 
