@@ -308,26 +308,26 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           cd repositorio-base
-
+      
           intentos=0
           exito=0
-
+      
           while [ $intentos -lt 3 ]; do
             echo "🔁 Intento de compilación #$((intentos+1))"
-
+      
             cp src/main/java/test/core/api/service/impl/EmployeeServiceImpl.java codigo_fallido.java
-
+      
             if mvn compile; then
               echo "✅ Compilación exitosa"
               exito=1
               break
             fi
-
+      
             echo "❌ Falló la compilación. Capturando errores..."
             mvn compile > error_build.log 2>&1 || true
-
+      
             echo "🧠 Análisis de error con GPT (Diagnóstico)..."
-
+      
             DIAG_CONTENT=$'--- LOG DE COMPILACIÓN FALLIDA ---\n'
             DIAG_CONTENT+="$(cat error_build.log)"
             DIAG_CONTENT+=$'\n\n--- CÓDIGO ACTUAL CON ERROR ---\n'
@@ -335,32 +335,30 @@ jobs:
             DIAG_CONTENT+=$'\n\n--- INSTRUCCIONES ---\n'
             DIAG_CONTENT+="Eres un experto compilador de Java. Analiza el error y entrega un plan de corrección estructurado. "
             DIAG_CONTENT+="Indica el archivo afectado, línea y explicación. No entregues código, solo el plan de corrección."
-
-            DIAG_PROMPT=$(jq -Rs . <<< "$DIAG_CONTENT")
-
-            cat > payload_diagnostico_errores.json <<'EOF'
-{
-  "model": "gpt-4",
-  "messages": [
-    { "role": "system", "content": "Eres un experto compilador Java. Entrega solo un plan de corrección." },
-    { "role": "user", "content": '"'"$DIAG_PROMPT"'"' }
-  ],
-  "temperature": 0.2
-}
-EOF
-
+      
+            jq -n \
+              --arg diag "$DIAG_CONTENT" \
+              '{
+                model: "gpt-4",
+                messages: [
+                  { role: "system", content: "Eres un experto compilador Java. Entrega solo un plan de corrección." },
+                  { role: "user", content: $diag }
+                ],
+                temperature: 0.2
+              }' > payload_diagnostico_errores.json
+      
             curl -s https://api.openai.com/v1/chat/completions \
               -H "Authorization: Bearer $OPENAI_API_KEY" \
               -H "Content-Type: application/json" \
               -d @payload_diagnostico_errores.json > respuesta_diagnostico.json
-
+      
             PLAN_CORRECCION=$(jq -r '.choices[0].message.content' respuesta_diagnostico.json)
-
+      
             echo "📋 Plan de corrección recibido:"
             echo "$PLAN_CORRECCION"
-
+      
             echo "🧠 Generando código corregido con GPT..."
-
+      
             CODIGO_CONTENT=$'--- PLAN DE CORRECCIÓN ---\n'
             CODIGO_CONTENT+="$PLAN_CORRECCION"
             CODIGO_CONTENT+=$'\n\n--- CÓDIGO ACTUAL CON ERROR ---\n'
@@ -368,41 +366,39 @@ EOF
             CODIGO_CONTENT+=$'\n\n--- INSTRUCCIONES ---\n'
             CODIGO_CONTENT+="Corrige el código entregado según el plan anterior. Devuelve solo código Java válido. "
             CODIGO_CONTENT+="Cada clase debe comenzar con 'package ...'. No uses backticks. No incluyas explicaciones."
-
-            CODIGO_PROMPT=$(jq -Rs . <<< "$CODIGO_CONTENT")
-
-            cat > payload_codigo_corregido.json <<'EOF'
-{
-  "model": "gpt-4",
-  "messages": [
-    { "role": "system", "content": "Eres un generador de código Java. Devuelve solo clases completas y corregidas." },
-    { "role": "user", "content": '"'"$CODIGO_PROMPT"'"' }
-  ],
-  "temperature": 0.3
-}
-EOF
-
+      
+            jq -n \
+              --arg corr "$CODIGO_CONTENT" \
+              '{
+                model: "gpt-4",
+                messages: [
+                  { role: "system", content: "Eres un generador de código Java. Devuelve solo clases completas y corregidas." },
+                  { role: "user", content: $corr }
+                ],
+                temperature: 0.3
+              }' > payload_codigo_corregido.json
+      
             curl -s https://api.openai.com/v1/chat/completions \
               -H "Authorization: Bearer $OPENAI_API_KEY" \
               -H "Content-Type: application/json" \
               -d @payload_codigo_corregido.json > respuesta_codigo.json
-
+      
             jq -r '.choices[0].message.content // "❌ Sin contenido válido."' respuesta_codigo.json \
               | sed '/^```/d' > clases_generadas.java
-
+      
             echo "📄 Código generado:"
             cat clases_generadas.java
-
+      
             echo "🔄 Regenerando archivos Java..."
             rm -f clase_*.java
-
+      
             sed -i 's/`//g' clases_generadas.java
             sed -i '1,/^package /{/^package /!d}' clases_generadas.java
             csplit --quiet --prefix=clase_ --suffix-format=%02d.java clases_generadas.java "/^package /" {*}
-
+      
             mkdir -p src/main/java/ai/generated
             mkdir -p src/test/java/ai/generated
-
+      
             for file in clase_*.java; do
               if ! grep -qE 'package\s+[a-zA-Z0-9_.]+;' "$file"; then rm "$file"; continue; fi
               if ! grep -qE '\b(class|interface|enum)\b' "$file"; then rm "$file"; continue; fi
@@ -414,15 +410,15 @@ EOF
                 mv "$file" "src/main/java/ai/generated/${class_name}.java"
               fi
             done
-
+      
             intentos=$((intentos+1))
           done
-
+      
           if [ $exito -eq 0 ]; then
             echo "❌ Se alcanzó el máximo de intentos sin éxito"
             exit 1
           fi
-
+      
       
       - name: Commit y push de la nueva funcionalidad (si todo compila)
         if: success()
