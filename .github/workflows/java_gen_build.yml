@@ -347,7 +347,7 @@ jobs:
               ],
               "temperature": 0.2
             }
-            EOF
+EOF
       
             curl -s https://api.openai.com/v1/chat/completions \
               -H "Authorization: Bearer $OPENAI_API_KEY" \
@@ -380,7 +380,7 @@ jobs:
               ],
               "temperature": 0.3
             }
-            EOF
+EOF
       
             curl -s https://api.openai.com/v1/chat/completions \
               -H "Authorization: Bearer $OPENAI_API_KEY" \
