@@ -315,8 +315,6 @@ jobs:
           while [ $intentos -lt 3 ]; do
             echo "🔁 Intento de compilación #$((intentos+1))"
       
-            cp src/main/java/test/core/api/service/impl/EmployeeServiceImpl.java codigo_fallido.java
-      
             if mvn compile; then
               echo "✅ Compilación exitosa"
               exito=1
@@ -331,7 +329,10 @@ jobs:
             DIAG_CONTENT=$'--- LOG DE COMPILACIÓN FALLIDA ---\n'
             DIAG_CONTENT+="$(cat error_build.log)"
             DIAG_CONTENT+=$'\n\n--- CÓDIGO ACTUAL CON ERROR ---\n'
-            DIAG_CONTENT+="$(cat codigo_fallido.java)"
+            for file in src/main/java/ai/generated/*.java; do
+              DIAG_CONTENT+=$'\n\n--- ARCHIVO: '"$file"$' ---\n'
+              DIAG_CONTENT+="$(cat "$file")"
+            done
             DIAG_CONTENT+=$'\n\n--- INSTRUCCIONES ---\n'
             DIAG_CONTENT+="Eres un experto compilador de Java. Analiza el error y entrega un plan de corrección estructurado. "
             DIAG_CONTENT+="Indica el archivo afectado, línea y explicación. No entregues código, solo el plan de corrección."
@@ -362,7 +363,10 @@ jobs:
             CODIGO_CONTENT=$'--- PLAN DE CORRECCIÓN ---\n'
             CODIGO_CONTENT+="$PLAN_CORRECCION"
             CODIGO_CONTENT+=$'\n\n--- CÓDIGO ACTUAL CON ERROR ---\n'
-            CODIGO_CONTENT+="$(cat codigo_fallido.java)"
+            for file in src/main/java/ai/generated/*.java; do
+              CODIGO_CONTENT+=$'\n\n--- ARCHIVO: '"$file"$' ---\n'
+              CODIGO_CONTENT+="$(cat "$file")"
+            done
             CODIGO_CONTENT+=$'\n\n--- INSTRUCCIONES ---\n'
             CODIGO_CONTENT+="Corrige el código entregado según el plan anterior. Devuelve solo código Java válido. "
             CODIGO_CONTENT+="Cada clase debe comenzar con 'package ...'. No uses backticks. No incluyas explicaciones."
@@ -418,6 +422,7 @@ jobs:
             echo "❌ Se alcanzó el máximo de intentos sin éxito"
             exit 1
           fi
+        
       
       
       - name: Commit y push de la nueva funcionalidad (si todo compila)
