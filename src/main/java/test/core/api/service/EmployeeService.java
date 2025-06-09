@@ -1,17 +1,11 @@
 package test.core.api.service;
 
-import java.util.List;
-
 import test.core.api.model.Employee;
 
+import java.util.List;
+
 public interface EmployeeService {
-	
-
-	List<Employee> getAllEmployees();
-	void deleteEmployeeById(Long id);
-    Employee saveEmployee(Employee employee);
-
-
-
-	
+    List<Employee> getEmployees();
+    List<Employee> getEmployeesBornBeforeYear(int year);
 }
+

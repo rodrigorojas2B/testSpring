@@ -1,39 +1,32 @@
 --- HISTORIA DE USUARIO ---
-id: HDU-EMP-003
-titulo: Prevenir eliminación de empleadas
-actor: Administrador del sistema
-descripcion: >
-  Como administrador del sistema,
-  quiero que no se permita eliminar empleados de género femenino,
-  para cumplir con la normativa interna de no eliminar registros históricos sensibles.
-
-criterios_aceptacion:
-  - Si se intenta eliminar un empleado con género "Femenino", se debe lanzar una excepción o retornar un error controlado.
-  - Si el empleado es de género "Masculino" u otro valor, se permite la eliminación normal.
-  - El método de eliminación actual debe ser modificado para incluir esta validación.
-  - No debe eliminarse ninguna lógica existente que ya esté implementada en ese método.
-  - Se deben mantener todos los métodos actuales sin eliminación ni reemplazo.
-  - La modificación debe estar delimitada por comentarios que indiquen claramente el inicio y fin del cambio realizado por la IA.
-
+nombre: Obtener empleados nacidos antes del año 2000
+como: Administrador del sistema
+quiero: Obtener una lista de empleados que hayan nacido antes del año 2000
+para: Poder segmentar a los empleados por  generaciones y aplicar políticas diferenciadas
 
 --- DIAGNÓSTICO Y PLAN DE CLASES ---
 --- ANÁLISIS DE CLASES EXISTENTES ---
 
-| Clase Java | Clasificación | Motivo |
-|------------|----------------|--------|
-| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` que es necesario para la validación |
-| EmployeeRepository | REUTILIZABLE-AS-IS | Proporciona la funcionalidad de eliminación que se modificará |
-| EmployeeService | REUTILIZABLE-AS-IS | La interfaz del servicio no necesita modificaciones |
-| EmployeeServiceImpl | MODIFICABLE | Necesita validación adicional antes de eliminar un empleado |
-| EmployeeController | REUTILIZABLE-AS-IS | No necesita modificaciones ya que la lógica de eliminación está en el servicio |
+| Clase Java | Package | Clasificación | Motivo |
+|------------|---------|----------------|--------|
+| Employee | test.core.api.model | REUTILIZABLE-AS-IS | Contiene atributo `birthDate` necesario para la nueva funcionalidad |
+| EmployeeRepository | test.core.api.repository | REUTILIZABLE-AS-IS | Se puede extender para agregar la nueva funcionalidad |
+| EmployeeCoreApiApplication | test.core.api | REUTILIZABLE-AS-IS | No necesita modificaciones para la nueva funcionalidad |
+| EmployeeController | test.core.api.controller | MODIFICABLE | Se necesita agregar un nuevo endpoint para la nueva funcionalidad |
+| EmployeeService | test.core.api.service | MODIFICABLE | Se necesita agregar un nuevo método para la nueva funcionalidad |
+| EmployeeServiceImpl | test.core.api.service.impl | MODIFICABLE | Se necesita implementar el nuevo método para la nueva funcionalidad |
 
 --- PLAN DE MODIFICACIÓN ---
 
-1. Clase `EmployeeServiceImpl`: Modificar el método `deleteEmployeeById(Long id)` para incluir una validación de género antes de eliminar un empleado. Si el género del empleado es "Femenino", se lanzará una excepción. Si el género es "Masculino" u otro valor, se permitirá la eliminación.
+1. Clase `EmployeeRepository`: Agregar un nuevo método `List<Employee> findByBirthDateBefore(LocalDate date);` para obtener los empleados nacidos antes de una fecha específica.
 
-2. Crear una nueva excepción personalizada `CannotDeleteEmployeeException` para lanzar cuando se intenta eliminar un empleado femenino. Esta clase se creará en el paquete `test.core.api.exception`.
+2. Clase `EmployeeService`: Agregar un nuevo método `List<Employee> getEmployeesBornBeforeYear(int year);` para obtener los empleados nacidos antes de un año específico.
 
-3. Crear pruebas unitarias para el método modificado en la clase `EmployeeServiceImplTest`. Estas pruebas verificarán que se lanza la excepción correcta cuando se intenta eliminar un empleado femenino y que los empleados masculinos u otros pueden ser eliminados.
+3. Clase `EmployeeServiceImpl`: Implementar el nuevo método `getEmployeesBornBeforeYear(int year)`. Este método debe convertir el año en una fecha (1 de enero del año especificado) y luego llamar al método `findByBirthDateBefore(LocalDate date)` del repositorio.
+
+4. Clase `EmployeeController`: Agregar un nuevo endpoint `@GetMapping("/born-before/{year}")` que llame al método `getEmployeesBornBeforeYear(int year)` del servicio.
+
+5. Crear pruebas unitarias para los nuevos métodos en `EmployeeServiceImpl` y `EmployeeController`.
 
 --- INSTRUCCIONES DE GENERACIÓN DE CÓDIGO ---
 - Modifica únicamente las clases marcadas como MODIFICABLE.
@@ -44,4 +37,7 @@ criterios_aceptacion:
 - Cada clase debe comenzar con `package ...`.
 - Devuelve únicamente clases y tests JUnit 5 válidos.
 - No incluyas explicaciones ni comentarios adicionales.
+- Si una clase existente implementa una interfaz, o hereda de otra clase, debes mantener esa declaración `implements o extends ...`.
+- No elimines implementaciones de interfaces ya declaradas.
+- La firma de las clases y métodos debe mantenerse sin cambio a menos que la nueva funcionalidad lo requiera
 

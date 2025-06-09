@@ -1,0 +1,14 @@
+{
+  "model": "gpt-4",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Eres un generador de código Java. Fusiona y devuelve solo una clase final completa y corregida."
+    },
+    {
+      "role": "user",
+      "content": "--- CLASE ORIGINAL EXISTENTE ---\npackage test.core.api.service.impl;\n\nimport java.util.List;\n\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.stereotype.Component;\n\nimport test.core.api.model.Employee;\nimport test.core.api.repository.EmployeeRepository;\nimport test.core.api.service.EmployeeService;\n\n@Component\npublic class EmployeeServiceImpl implements EmployeeService {\n\t\n\t    @Autowired\n\t    private EmployeeRepository repository;\n\n\t\t\n\t    public List<Employee> getAllEmployees() {\n\t        return (List<Employee>) repository.findAll();\n\t    }\n\n\t    public void deleteEmployeeById(Long id) {\n\t        repository.deleteById(id);\n\t    }\n\n\t    public Employee saveEmployee(Employee employee) {\n\t        return repository.save(employee); \n\t    }\n}\n\n--- CLASE GENERADA POR IA ---\npackage test.core.api.service.impl;\n\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.stereotype.Service;\nimport test.core.api.model.Employee;\nimport test.core.api.repository.EmployeeRepository;\nimport test.core.api.service.EmployeeService;\n\nimport java.time.LocalDate;\nimport java.util.List;\n\n@Service\npublic class EmployeeServiceImpl implements EmployeeService {\n\n    @Autowired\n    private EmployeeRepository employeeRepository;\n\n    @Override\n    public List<Employee> getEmployees() {\n        return employeeRepository.findAll();\n    }\n\n    @Override\n    public List<Employee> getEmployeesBornBeforeYear(int year) {\n        LocalDate date = LocalDate.of(year, 1, 1);\n        return employeeRepository.findByBirthDateBefore(date);\n    }\n}\n\n--- INSTRUCCIONES ---\nFusiona ambas clases asegurando lo siguiente:\\n- Mantén todos los métodos válidos de la clase original.\\n- Agrega los métodos nuevos de la clase generada.\\n- Reemplaza métodos si tienen la misma firma pero diferente cuerpo.\\n- No elimines métodos válidos del original que no estén en la nueva.\\n- Devuelve solo una clase Java válida (sin explicaciones, sin texto extra, sin backticks)."
+    }
+  ],
+  "temperature": 0.3
+}

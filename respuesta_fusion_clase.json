@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-BgNYuKCp2sqKka0LTx7hbMaz8IeIa",
+  "object": "chat.completion",
+  "created": 1749440048,
+  "model": "gpt-4-0613",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "package test.core.api.service.impl;\n\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.stereotype.Service;\nimport test.core.api.model.Employee;\nimport test.core.api.repository.EmployeeRepository;\nimport test.core.api.service.EmployeeService;\n\nimport java.time.LocalDate;\nimport java.util.List;\n\n@Service\npublic class EmployeeServiceImpl implements EmployeeService {\n\n    @Autowired\n    private EmployeeRepository employeeRepository;\n\n    @Override\n    public List<Employee> getAllEmployees() {\n        return employeeRepository.findAll();\n    }\n\n    public void deleteEmployeeById(Long id) {\n        employeeRepository.deleteById(id);\n    }\n\n    public Employee saveEmployee(Employee employee) {\n        return employeeRepository.save(employee); \n    }\n\n    @Override\n    public List<Employee> getEmployeesBornBeforeYear(int year) {\n        LocalDate date = LocalDate.of(year, 1, 1);\n        return employeeRepository.findByBirthDateBefore(date);\n    }\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 424,
+    "completion_tokens": 178,
+    "total_tokens": 602,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}
