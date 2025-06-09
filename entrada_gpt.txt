@@ -1,22 +1,10 @@
 
 
 --- HISTORIA DE USUARIO ---
-id: HDU-EMP-003
-titulo: Prevenir eliminación de empleadas
-actor: Administrador del sistema
-descripcion: >
-  Como administrador del sistema,
-  quiero que no se permita eliminar empleados de género femenino,
-  para cumplir con la normativa interna de no eliminar registros históricos sensibles.
-
-criterios_aceptacion:
-  - Si se intenta eliminar un empleado con género "Femenino", se debe lanzar una excepción o retornar un error controlado.
-  - Si el empleado es de género "Masculino" u otro valor, se permite la eliminación normal.
-  - El método de eliminación actual debe ser modificado para incluir esta validación.
-  - No debe eliminarse ninguna lógica existente que ya esté implementada en ese método.
-  - Se deben mantener todos los métodos actuales sin eliminación ni reemplazo.
-  - La modificación debe estar delimitada por comentarios que indiquen claramente el inicio y fin del cambio realizado por la IA.
-
+nombre: Obtener empleados nacidos antes del año 2000
+como: Administrador del sistema
+quiero: Obtener una lista de empleados que hayan nacido antes del año 2000
+para: Poder segmentar a los empleados por generaciones y aplicar políticas diferenciadas
 
 --- CÓDIGO EXISTENTE DEL PROYECTO ---
 
@@ -243,6 +231,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 	    @Autowired
 	    private EmployeeRepository repository;
 
+		
 	    public List<Employee> getAllEmployees() {
 	        return (List<Employee>) repository.findAll();
 	    }
@@ -258,18 +247,22 @@ public class EmployeeServiceImpl implements EmployeeService {
 --- ANÁLISIS DE CLASES EXISTENTES ---
 Genera una tabla Markdown como esta:
 
-| Clase Java | Clasificación | Motivo |
-|------------|----------------|--------|
-| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` |
-| EmployeeServiceImpl | MODIFICABLE | Debe validar antes de borrar |
-| NuevaClaseX | NUEVA | Requerida por funcionalidad nueva |
+| Clase Java | Package | Clasificación | Motivo |
+|------------|---------|----------------|--------|
+| Employee | com.example.EmployeeCoreApi.model | REUTILIZABLE-AS-IS | Contiene atributo `gender` |
+| EmployeeServiceImpl | com.example.EmployeeCoreApi.service.impl | MODIFICABLE | Debe validar antes de borrar |
+| CannotDeleteEmployeeException | com.example.EmployeeCoreApi.exception | NUEVA | Requerida para lanzar excepción |
+| EmployeeServiceImplTest | com.example.EmployeeCoreApi.service.impl | NUEVA | Pruebas unitarias de validación |
 
 --- INSTRUCCIONES DE MODIFICACIÓN ---
 - No eliminar ni reemplazar lógica existente.
 - Si se modifica un método, incluirlo completo con el nuevo código y lo que ya tenía.
 - Solo generar clases nuevas si están indicadas como NUEVA.
+- Cada clase debe estar en su package correcto, según lo indicado en la tabla.
 - NO repetir clases ya existentes si no cambian.
+- NO eliminar los métodos existentes a menos que sea necesario
+- NO reemplazar métodos u otro contenido de las clases existentes por comentarios entre líneas
 
 --- CÓDIGO A GENERAR ---
 Devuelve solo clases Java válidas. Cada bloque debe comenzar con `package ...`.
-También incluye tests JUnit5 si aplica.
+Incluye los tests JUnit5 en el mismo formato si aplica.

@@ -1,30 +1,30 @@
 package test.core.api.service.impl;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
+import org.springframework.stereotype.Service;
 import test.core.api.model.Employee;
 import test.core.api.repository.EmployeeRepository;
 import test.core.api.service.EmployeeService;
 
-@Component
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
+
+@Service
 public class EmployeeServiceImpl implements EmployeeService {
-	
-	    @Autowired
-	    private EmployeeRepository repository;
 
-		
-	    public List<Employee> getAllEmployees() {
-	        return (List<Employee>) repository.findAll();
-	    }
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
-	    public void deleteEmployeeById(Long id) {
-	        repository.deleteById(id);
-	    }
+    @Override
+    public List<Employee> getAllEmployees() {
+        return employeeRepository.findAll();
+    }
 
-	    public Employee saveEmployee(Employee employee) {
-	        return repository.save(employee); 
-	    }
+    @Override
+    public List<Employee> getEmployeesBornBeforeYear(int year) {
+        LocalDate date = LocalDate.of(year, 1, 1);
+        return employeeRepository.findByBirthDateBefore(date);
+    }
 }
+

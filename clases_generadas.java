@@ -1,13 +1,37 @@
---- CLASE MODIFICADA ---
+package test.core.api.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import test.core.api.model.Employee;
+
+import java.time.LocalDate;
+import java.util.List;
+
+public interface EmployeeRepository extends JpaRepository<Employee, Long> {
+    List<Employee> findByBirthDateBefore(LocalDate date);
+}
+
+package test.core.api.service;
+
+import test.core.api.model.Employee;
+
+import java.util.List;
+
+public interface EmployeeService {
+    List<Employee> getAllEmployees();
+    List<Employee> getEmployeesBornBeforeYear(int year);
+}
 
 package test.core.api.service.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import test.core.api.exception.CannotDeleteEmployeeException;
 import test.core.api.model.Employee;
 import test.core.api.repository.EmployeeRepository;
 import test.core.api.service.EmployeeService;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -16,71 +40,126 @@ public class EmployeeServiceImpl implements EmployeeService {
     private EmployeeRepository employeeRepository;
 
     @Override
-    public void deleteEmployeeById(Long id) {
-        // Start of AI modification
-        Employee employee = employeeRepository.findById(id).orElse(null);
-        if (employee != null && "Femenino".equals(employee.getGender())) {
-            throw new CannotDeleteEmployeeException("Cannot delete female employee with id: " + id);
-        }
-        // End of AI modification
-        employeeRepository.deleteById(id);
+    public List<Employee> getAllEmployees() {
+        return employeeRepository.findAll();
     }
 
-    // Other existing methods...
-}
-
---- NUEVA CLASE ---
-
-package test.core.api.exception;
-
-public class CannotDeleteEmployeeException extends RuntimeException {
-    public CannotDeleteEmployeeException(String message) {
-        super(message);
+    @Override
+    public List<Employee> getEmployeesBornBeforeYear(int year) {
+        LocalDate date = LocalDate.of(year, 1, 1);
+        return employeeRepository.findByBirthDateBefore(date);
     }
 }
 
---- TEST UNITARIO NUEVO ---
+package test.core.api.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import test.core.api.model.Employee;
+import test.core.api.service.EmployeeService;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/employees")
+public class EmployeeController {
+
+    @Autowired
+    private EmployeeService employeeService;
+
+    @GetMapping
+    public List<Employee> getAllEmployees() {
+        return employeeService.getAllEmployees();
+    }
+
+    @GetMapping("/born-before/{year}")
+    public List<Employee> getEmployeesBornBeforeYear(@PathVariable int year) {
+        return employeeService.getEmployeesBornBeforeYear(year);
+    }
+}
 
 package test.core.api.service.impl;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import test.core.api.exception.CannotDeleteEmployeeException;
+import org.springframework.boot.test.context.SpringBootTest;
 import test.core.api.model.Employee;
 import test.core.api.repository.EmployeeRepository;
 
-import java.util.Optional;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
 public class EmployeeServiceImplTest {
-
-    @Mock
-    private EmployeeRepository employeeRepository;
 
     @InjectMocks
     private EmployeeServiceImpl employeeService;
 
-    @Test
-    public void deleteEmployeeById_FemaleEmployee_ThrowsException() {
-        Employee femaleEmployee = new Employee();
-        femaleEmployee.setGender("Femenino");
-        when(employeeRepository.findById(1L)).thenReturn(Optional.of(femaleEmployee));
+    @Mock
+    private EmployeeRepository employeeRepository;
 
-        assertThrows(CannotDeleteEmployeeException.class, () -> employeeService.deleteEmployeeById(1L));
+    @Test
+    public void testGetEmployeesBornBeforeYear() {
+        Employee emp1 = new Employee();
+        emp1.setBirthDate(LocalDate.of(1990, 1, 1));
+        Employee emp2 = new Employee();
+        emp2.setBirthDate(LocalDate.of(1995, 1, 1));
+        when(employeeRepository.findByBirthDateBefore(LocalDate.of(2000, 1, 1))).thenReturn(Arrays.asList(emp1, emp2));
+
+        List<Employee> result = employeeService.getEmployeesBornBeforeYear(2000);
+
+        assertEquals(2, result.size());
+        assertEquals(emp1, result.get(0));
+        assertEquals(emp2, result.get(1));
     }
+}
+
+package test.core.api.controller;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import test.core.api.model.Employee;
+import test.core.api.service.EmployeeService;
+
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
+
+@SpringBootTest
+public class EmployeeControllerTest {
+
+    @InjectMocks
+    private EmployeeController employeeController;
+
+    @Mock
+    private EmployeeService employeeService;
 
     @Test
-    public void deleteEmployeeById_MaleEmployee_AllowsDeletion() {
-        Employee maleEmployee = new Employee();
-        maleEmployee.setGender("Masculino");
-        when(employeeRepository.findById(1L)).thenReturn(Optional.of(maleEmployee));
+    public void testGetEmployeesBornBeforeYear() {
+        Employee emp1 = new Employee();
+        emp1.setBirthDate(LocalDate.of(1990, 1, 1));
+        Employee emp2 = new Employee();
+        emp2.setBirthDate(LocalDate.of(1995, 1, 1));
+        when(employeeService.getEmployeesBornBeforeYear(2000)).thenReturn(Arrays.asList(emp1, emp2));
 
-        employeeService.deleteEmployeeById(1L);  // No exception should be thrown
+        List<Employee> result = employeeController.getEmployeesBornBeforeYear(2000);
+
+        assertEquals(2, result.size());
+        assertEquals(emp1, result.get(0));
+        assertEquals(emp2, result.get(1));
     }
 }
