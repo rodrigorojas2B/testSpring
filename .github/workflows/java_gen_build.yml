@@ -366,6 +366,8 @@ jobs:
       
           while [ $intentos -lt 3 ]; do
             echo "🔁 Intento de compilación #$((intentos+1))"
+            echo "📦 Código compilado:"
+            find src/main/java -name '*.java' -exec echo "---- {} ----" \; -exec cat {} \;
       
             if mvn compile; then
               echo "✅ Compilación exitosa"
