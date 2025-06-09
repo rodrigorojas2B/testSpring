@@ -278,6 +278,58 @@ jobs:
             i=$((i+1))
           done
 
+      - name: Fusionar clases generadas con las originales (si existen)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          cd repositorio-base
+
+          echo "🧠 Fusionando clases generadas con originales (si aplica)"
+
+          for generada in src/main/java/ai/generated/*.java; do
+            class_name=$(basename "$generada")
+
+            original_path=$(find src/main/java -type f -name "$class_name" | grep -v /ai/generated/ | head -n 1 || true)
+
+            if [ -z "$original_path" ]; then
+              echo "🔹 $class_name es clase nueva. No se fusiona."
+              continue
+            fi
+
+            echo "🔄 Fusionando $class_name"
+
+            FUSION_PROMPT=$'--- CLASE ORIGINAL EXISTENTE ---\n'
+            FUSION_PROMPT+="$(cat "$original_path")"
+            FUSION_PROMPT+=$'\n\n--- CLASE GENERADA POR IA ---\n'
+            FUSION_PROMPT+="$(cat "$generada")"
+            FUSION_PROMPT+=$'\n\n--- INSTRUCCIONES ---\n'
+            FUSION_PROMPT+="Fusiona ambas clases asegurando lo siguiente:\n"
+            FUSION_PROMPT+="- Mantén todos los métodos válidos de la clase original.\n"
+            FUSION_PROMPT+="- Agrega los métodos nuevos de la clase generada.\n"
+            FUSION_PROMPT+="- Reemplaza métodos si tienen la misma firma pero diferente cuerpo.\n"
+            FUSION_PROMPT+="- No elimines métodos válidos del original que no estén en la nueva.\n"
+            FUSION_PROMPT+="- Devuelve solo una clase Java válida (sin explicaciones, sin texto extra, sin backticks)."
+
+            jq -n --arg fusion "$FUSION_PROMPT" ' {
+              model: "gpt-4",
+              messages: [
+                { "role": "system", "content": "Eres un generador de código Java. Fusiona y devuelve solo una clase final completa y corregida." },
+                { "role": "user", "content": $fusion }
+              ],
+              temperature: 0.3
+            }' > payload_fusion_clase.json
+
+            curl -s https://api.openai.com/v1/chat/completions \
+              -H "Authorization: Bearer $OPENAI_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d @payload_fusion_clase.json > respuesta_fusion_clase.json
+
+            jq -r '.choices[0].message.content // "❌ Sin contenido válido."' respuesta_fusion_clase.json \
+              | sed '/^```/d' > "$original_path"
+
+            echo "✅ Clase fusionada: $original_path"
+          done
+  
 
       - name: Reemplazar clases generadas en ubicación original
         run: |
