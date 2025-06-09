@@ -328,11 +328,24 @@ jobs:
       
             DIAG_CONTENT=$'--- LOG DE COMPILACIÓN FALLIDA ---\n'
             DIAG_CONTENT+="$(cat error_build.log)"
+      
             DIAG_CONTENT+=$'\n\n--- CÓDIGO ACTUAL CON ERROR ---\n'
-            for file in src/main/java/ai/generated/*.java; do
-              DIAG_CONTENT+=$'\n\n--- ARCHIVO: '"$file"$' ---\n'
-              DIAG_CONTENT+="$(cat "$file")"
-            done
+      
+            if compgen -G "src/main/java/ai/generated/*.java" > /dev/null; then
+              for file in src/main/java/ai/generated/*.java; do
+                DIAG_CONTENT+=$'\n\n--- ARCHIVO: '"$file"$' ---\n'
+                DIAG_CONTENT+="$(cat "$file")"
+              done
+            else
+              for file in $(find src/main/java -name "*.java"); do
+                if grep -q "public class " "$file"; then
+                  DIAG_CONTENT+=$'\n\n--- ARCHIVO: '"$file"$' ---\n'
+                  DIAG_CONTENT+="$(cat "$file")"
+                  break
+                fi
+              done
+            fi
+      
             DIAG_CONTENT+=$'\n\n--- INSTRUCCIONES ---\n'
             DIAG_CONTENT+="Eres un experto compilador de Java. Analiza el error y entrega un plan de corrección estructurado. "
             DIAG_CONTENT+="Indica el archivo afectado, línea y explicación. No entregues código, solo el plan de corrección."
@@ -362,11 +375,24 @@ jobs:
       
             CODIGO_CONTENT=$'--- PLAN DE CORRECCIÓN ---\n'
             CODIGO_CONTENT+="$PLAN_CORRECCION"
+      
             CODIGO_CONTENT+=$'\n\n--- CÓDIGO ACTUAL CON ERROR ---\n'
-            for file in src/main/java/ai/generated/*.java; do
-              CODIGO_CONTENT+=$'\n\n--- ARCHIVO: '"$file"$' ---\n'
-              CODIGO_CONTENT+="$(cat "$file")"
-            done
+      
+            if compgen -G "src/main/java/ai/generated/*.java" > /dev/null; then
+              for file in src/main/java/ai/generated/*.java; do
+                CODIGO_CONTENT+=$'\n\n--- ARCHIVO: '"$file"$' ---\n'
+                CODIGO_CONTENT+="$(cat "$file")"
+              done
+            else
+              for file in $(find src/main/java -name "*.java"); do
+                if grep -q "public class " "$file"; then
+                  CODIGO_CONTENT+=$'\n\n--- ARCHIVO: '"$file"$' ---\n'
+                  CODIGO_CONTENT+="$(cat "$file")"
+                  break
+                fi
+              done
+            fi
+      
             CODIGO_CONTENT+=$'\n\n--- INSTRUCCIONES ---\n'
             CODIGO_CONTENT+="Corrige el código entregado según el plan anterior. Devuelve solo código Java válido. "
             CODIGO_CONTENT+="Cada clase debe comenzar con 'package ...'. No uses backticks. No incluyas explicaciones."
@@ -423,7 +449,6 @@ jobs:
             exit 1
           fi
         
-      
       
       - name: Commit y push de la nueva funcionalidad (si todo compila)
         if: success()
