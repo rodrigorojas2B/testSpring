@@ -1,4 +1,4 @@
 nombre: Obtener empleados nacidos antes del año 2000
 como: Administrador del sistema
 quiero: Obtener una lista de empleados que hayan nacido antes del año 2000
-para: Poder segmentar a los empleados por  generaciones y aplicar políticas diferenciadas
+para: Poder segmentar a los empleados por generaciones y aplicar políticas diferenciadas

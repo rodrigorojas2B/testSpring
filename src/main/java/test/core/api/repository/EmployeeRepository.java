@@ -6,7 +6,6 @@ import test.core.api.model.Employee;
 
 public interface EmployeeRepository extends PagingAndSortingRepository<Employee, Long> {
 
-
 }
 
 
