@@ -328,18 +328,15 @@ jobs:
       
             echo "🧠 Análisis de error con GPT (Diagnóstico)..."
       
-            DIAG_PROMPT=$(jq -Rs . <<< "$(cat <<EOF
-            --- LOG DE COMPILACIÓN FALLIDA ---
-            $(cat error_build.log)
-            
-            --- CÓDIGO ACTUAL CON ERROR ---
-            $(cat codigo_fallido.java)
-            
-            --- INSTRUCCIONES ---
-            Eres un experto compilador de Java. Analiza el error y entrega un plan de corrección estructurado.
-            Indica el archivo afectado, línea y explicación. No entregues código, solo el plan de corrección.
-            EOF
-            )")
+            DIAG_CONTENT=$'--- LOG DE COMPILACIÓN FALLIDA ---\n'
+            DIAG_CONTENT+="$(cat error_build.log)"
+            DIAG_CONTENT+=$'\n\n--- CÓDIGO ACTUAL CON ERROR ---\n'
+            DIAG_CONTENT+="$(cat codigo_fallido.java)"
+            DIAG_CONTENT+=$'\n\n--- INSTRUCCIONES ---\n'
+            DIAG_CONTENT+="Eres un experto compilador de Java. Analiza el error y entrega un plan de corrección estructurado. "
+            DIAG_CONTENT+="Indica el archivo afectado, línea y explicación. No entregues código, solo el plan de corrección."
+      
+            DIAG_PROMPT=$(jq -Rs . <<< "$DIAG_CONTENT")
       
             cat > payload_diagnostico_errores.json <<EOF
             {
@@ -364,18 +361,15 @@ jobs:
       
             echo "🧠 Generando código corregido con GPT..."
       
-            CODIGO_PROMPT=$(jq -Rs . <<< "$(cat <<EOF
-            --- PLAN DE CORRECCIÓN ---
-            $PLAN_CORRECCION
-            
-            --- CÓDIGO ACTUAL CON ERROR ---
-            $(cat codigo_fallido.java)
-            
-            --- INSTRUCCIONES ---
-            Corrige el código entregado según el plan anterior. Devuelve solo código Java válido.
-            Cada clase debe comenzar con 'package ...'. No uses backticks. No incluyas explicaciones.
-            EOF
-            )")
+            CODIGO_CONTENT=$'--- PLAN DE CORRECCIÓN ---\n'
+            CODIGO_CONTENT+="$PLAN_CORRECCION"
+            CODIGO_CONTENT+=$'\n\n--- CÓDIGO ACTUAL CON ERROR ---\n'
+            CODIGO_CONTENT+="$(cat codigo_fallido.java)"
+            CODIGO_CONTENT+=$'\n\n--- INSTRUCCIONES ---\n'
+            CODIGO_CONTENT+="Corrige el código entregado según el plan anterior. Devuelve solo código Java válido. "
+            CODIGO_CONTENT+="Cada clase debe comenzar con 'package ...'. No uses backticks. No incluyas explicaciones."
+      
+            CODIGO_PROMPT=$(jq -Rs . <<< "$CODIGO_CONTENT")
       
             cat > payload_codigo_corregido.json <<EOF
             {
@@ -428,8 +422,8 @@ jobs:
             echo "❌ Se alcanzó el máximo de intentos sin éxito"
             exit 1
           fi
-        
-        
+      
+      
       - name: Commit y push de la nueva funcionalidad (si todo compila)
         if: success()
         env:
